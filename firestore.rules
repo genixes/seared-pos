@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers ----
+    function signedIn() {
+      return request.auth != null;
+    }
+    function hasStaffDoc() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+    function role() {
+      return get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role;
+    }
+    function isStaff() {
+      return hasStaffDoc();
+    }
+    function isManager() {
+      return hasStaffDoc() && role() == 'manager';
+    }
+
+    // ---- staff: a user can read their own doc; managers manage everyone ----
+    match /staff/{uid} {
+      allow get:   if signedIn() && (request.auth.uid == uid || isManager());
+      allow list:  if isManager();
+      allow write: if isManager();
+    }
+
+    // ---- menu: any staff can read; only managers can edit ----
+    match /menu/{id} {
+      allow read:  if isStaff();
+      allow write: if isManager();
+    }
+
+    // ---- tables & orders: any signed-in staff can operate ----
+    match /tables/{id} {
+      allow read, write: if isStaff();
+    }
+    match /orders/{id} {
+      allow read, write: if isStaff();
+    }
+
+    // ---- sales: staff can record a sale; only managers can read reports ----
+    match /sales/{id} {
+      allow read:           if isManager();
+      allow create:         if isStaff();
+      allow update, delete: if false;
+    }
+
+    // ---- voids: manager-approved only, manager-readable ----
+    match /voids/{id} {
+      allow read:           if isManager();
+      allow create:         if isManager();
+      allow update, delete: if false;
+    }
+
+    // everything else: denied
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
