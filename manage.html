@@ -152,21 +152,29 @@ function secondary(){
 if (!window.CONFIG_OK){ document.body.innerHTML = '<p style="padding:2rem;color:#e8966b">Edit config.js first.</p>'; }
 else { start(); }
 
-async function start(){
-  const snap = await db.collection("staff").limit(1).get();
-  const empty = snap.empty;
+function start(){
   firebase.auth().onAuthStateChanged(async function(user){
-    if (empty && !user){ show("bootstrap"); return; }
-    if (!user){ show("signin"); return; }
-    // signed in - must be manager
-    const me = await db.collection("staff").doc(user.uid).get();
-    if (me.exists && me.data().role === "manager"){ show("console"); listenStaff(); listenMenu(); }
-    else if (empty){ show("bootstrap"); }
-    else {
-      // signed in but not a manager
-      $("signin").classList.remove("hidden"); $("console").classList.add("hidden"); $("bootstrap").classList.add("hidden");
-      msg("s-msg","You are signed in but not a manager. Sign in with a manager account.","err");
-      await firebase.auth().signOut();
+    if (!user){
+      // First-time setup is only possible before security rules are published.
+      try {
+        const snap = await db.collection("staff").limit(1).get();
+        if (snap.empty){ show("bootstrap"); return; }
+      } catch(e){ /* listing is locked -> a manager already exists; just sign in */ }
+      show("signin");
+      return;
+    }
+    // signed in - must be a manager
+    try {
+      const me = await db.collection("staff").doc(user.uid).get();
+      if (me.exists && me.data().role === "manager"){ show("console"); listenStaff(); listenMenu(); }
+      else {
+        msg("s-msg","You are signed in but not a manager. Sign in with a manager account.","err");
+        await firebase.auth().signOut();
+        show("signin");
+      }
+    } catch(e){
+      msg("s-msg","Could not load your account. Please sign in again.","err");
+      show("signin");
     }
   });
 }
