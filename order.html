@@ -196,6 +196,7 @@ try {
   } else {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
     setStatus("Connected","ok");
     loadMenu();
     loadTables();

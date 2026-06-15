@@ -167,6 +167,7 @@ try {
   else {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
     setStatus("Connected","ok");
     const startTs = firebase.firestore.Timestamp.fromDate(startOfDay);
     db.collection("sales").where("closedAt",">=",startTs).onSnapshot(s => { todaySales = s.docs.map(d=>d.data()); render(); }, e=>setStatus("Firestore error","err"));
