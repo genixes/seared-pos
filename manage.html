@@ -38,7 +38,11 @@
   .msg{font-size:.88rem;margin-top:.9rem;min-height:1.1rem}
   .msg.err{color:#e8966b}.msg.ok{color:#9ccb86}
   .hidden{display:none}
-  .soon{font-size:.85rem;color:#7a6b52;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:.9rem 1rem;margin-top:1.2rem;line-height:1.5}
+  .priceinp{width:6rem;min-height:2.4rem;padding:.45rem .55rem}
+  .availbtn{border:1px solid;background:none;border-radius:8px;padding:.45rem .7rem;font-size:.82rem;cursor:pointer;font-family:inherit;min-height:2.4rem;white-space:nowrap}
+  .availbtn.on{border-color:#3f6b34;color:#9ccb86}
+  .availbtn.off{border-color:#7a3b2f;color:#e8966b}
+  details summary{cursor:pointer;color:var(--amber);font-size:.9rem}
 </style>
 </head>
 <body>
@@ -104,7 +108,26 @@
       <div id="staffList"><p class="hint">Loading...</p></div>
     </div>
 
-    <div class="soon">Menu editing and "available dish" toggles are the next step - they will appear here so you can adjust the menu while the restaurant is open.</div>
+    <div class="card">
+      <h3>Menu</h3>
+      <p class="hint">Toggle a dish to "Sold out" when it runs out - it instantly shows as sold out on the order screen. Edit a price by typing a new number.</p>
+      <input id="m-search" placeholder="Search dish..." oninput="renderMenu()" style="margin-bottom:.8rem" />
+      <details style="margin-bottom:.9rem">
+        <summary>+ Add a new dish</summary>
+        <div class="grid2" style="margin-top:.7rem">
+          <div><label>Name</label><input id="nd-name" placeholder="e.g. Garlic Bread"></div>
+          <div><label>Category</label><input id="nd-cat" list="catlist" placeholder="e.g. Appetizers"></div>
+        </div>
+        <div class="grid2">
+          <div><label>Price</label><input id="nd-price" type="number" inputmode="numeric" placeholder="e.g. 199"></div>
+          <div><label>Station</label><select id="nd-station"><option value="kitchen">Kitchen</option><option value="bar">Bar</option></select></div>
+        </div>
+        <button class="primary" id="nd-add" style="margin-top:1rem;width:100%">Add dish</button>
+        <div class="msg" id="nd-msg"></div>
+        <datalist id="catlist"></datalist>
+      </details>
+      <div id="menuList"><p class="hint">Loading...</p></div>
+    </div>
   </div>
 </div>
 
@@ -137,7 +160,7 @@ async function start(){
     if (!user){ show("signin"); return; }
     // signed in - must be manager
     const me = await db.collection("staff").doc(user.uid).get();
-    if (me.exists && me.data().role === "manager"){ show("console"); listenStaff(); }
+    if (me.exists && me.data().role === "manager"){ show("console"); listenStaff(); listenMenu(); }
     else if (empty){ show("bootstrap"); }
     else {
       // signed in but not a manager
@@ -220,6 +243,57 @@ async function removeStaff(uid, label){
   if (!confirm("Remove "+label+"'s access? They will no longer be able to use the system.")) return;
   try{ await db.collection("staff").doc(uid).delete(); }catch(e){ alert("Remove failed: "+e.message); }
 }
+
+
+/* ---- live menu list + availability ---- */
+let menuRows = [];
+function listenMenu(){
+  db.collection("menu").orderBy("category").onSnapshot(snap => {
+    menuRows = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const cats = [...new Set(menuRows.map(m => m.category))];
+    $("catlist").innerHTML = cats.map(c => '<option value="'+c+'">').join("");
+    renderMenu();
+  });
+}
+function renderMenu(){
+  const q = ($("m-search").value || "").toLowerCase();
+  const rows = menuRows.filter(m => (m.name||"").toLowerCase().includes(q));
+  $("menuList").innerHTML = rows.map(m => {
+    const av = m.available !== false;
+    const safe = (m.name||"").replace(/'/g, "");
+    return '<div class="row"><div class="nm"><b>'+m.name+'</b><span>'+m.category+'</span></div>'
+      + '<input class="priceinp" type="number" inputmode="numeric" value="'+m.price+'" onchange="savePrice(\''+m.id+'\',this.value)">'
+      + '<button class="availbtn '+(av?'on':'off')+'" onclick="toggleAvail(\''+m.id+'\','+av+')">'+(av?'Available':'Sold out')+'</button>'
+      + '<button class="danger" onclick="removeDish(\''+m.id+'\',\''+safe+'\')">Remove</button></div>';
+  }).join("") || '<p class="hint">No dishes match.</p>';
+}
+async function savePrice(id, val){
+  const p = Math.round(+val || 0);
+  if (p <= 0){ alert("Enter a valid price."); return; }
+  try { await db.collection("menu").doc(id).update({ price:p }); }
+  catch(e){ alert("Save failed: " + e.message); }
+}
+async function toggleAvail(id, cur){
+  try { await db.collection("menu").doc(id).update({ available: !cur }); }
+  catch(e){ alert("Update failed: " + e.message); }
+}
+async function removeDish(id, name){
+  if (!confirm("Remove " + name + " from the menu?")) return;
+  try { await db.collection("menu").doc(id).delete(); }
+  catch(e){ alert("Remove failed: " + e.message); }
+}
+document.getElementById("nd-add").addEventListener("click", async () => {
+  const name=$("nd-name").value.trim(), cat=$("nd-cat").value.trim(),
+        price=Math.round(+$("nd-price").value||0), station=$("nd-station").value;
+  if (!name || !cat || price<=0){ msg("nd-msg","Enter name, category, and a valid price","err"); return; }
+  $("nd-add").disabled=true; msg("nd-msg","Adding...");
+  try {
+    await db.collection("menu").add({ name, category:cat, price, station, available:true });
+    $("nd-name").value=""; $("nd-price").value="";
+    msg("nd-msg","Dish added.","ok");
+  } catch(e){ msg("nd-msg", (e.message||"Failed"), "err"); }
+  finally { $("nd-add").disabled=false; }
+});
 
 function friendly(e){
   var c = e && e.code || "";

@@ -31,6 +31,9 @@
   .item:hover{border-color:var(--amber);transform:translateY(-1px)}
   .item:active{transform:scale(.98)}
   .item .ip{color:var(--amber);font-weight:600;font-size:1rem}
+  .item.soldout{opacity:.5;cursor:not-allowed}
+  .item.soldout .ip{color:#c98c78}
+  .item.soldout .nm-x{text-decoration:line-through}
   .order{background:var(--panel);display:flex;flex-direction:column;min-height:26rem}
   .ord-hd{padding:1rem 1.15rem;border-bottom:1px solid var(--line)}
   .ord-hd b{font-size:1.15rem;color:#f4ecdd;font-weight:600}
@@ -225,9 +228,12 @@ function renderTabs(){
 }
 function renderItems(){
   const list = menuByCat[activeCat] || [];
-  itemsEl.innerHTML = list.map(it =>
-    '<button class="item" onclick="addItem(\''+it.id+'\')"><span>'+it.name+'</span><span class="ip">'+peso(it.price)+'</span></button>'
-  ).join("");
+  itemsEl.innerHTML = list.map(it => {
+    const av = it.available !== false;
+    if (!av)
+      return '<button class="item soldout" disabled><span class="nm-x">'+it.name+'</span><span class="ip">Sold out</span></button>';
+    return '<button class="item" onclick="addItem(\''+it.id+'\')"><span>'+it.name+'</span><span class="ip">'+peso(it.price)+'</span></button>';
+  }).join("");
 }
 function setCat(c){ activeCat=c; renderTabs(); renderItems(); }
 
