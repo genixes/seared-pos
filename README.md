@@ -44,3 +44,22 @@ Host the whole folder once (see below), then on each device open the URL:
 The printer and cash drawer are handled only in `hardware.js`. When the
 thermal printer + electric drawer arrive, that single file is updated (e.g. to
 use the RawBT print bridge) - no other file changes.
+
+
+## Staff login & roles (Phase 7.2)
+Staff sign in with their **first name + password** (no email). Roles and
+passwords are managed by the manager.
+
+First-time setup:
+1. Firebase console > Authentication > Sign-in method > enable **Email/Password**.
+2. Open `manage.html`. Since no staff exist yet, it lets you create the first
+   **manager** account (first name + password).
+3. As manager, use `manage.html` (also linked from the dashboard's "Manage"
+   button) to add staff: first name, role (waiter/cashier/kitchen/manager),
+   and a password you set while they watch.
+4. Each staff signs in at `login.html` with their first name + password.
+   They can change their own password from the key button on the logout pill.
+
+Note: a forgotten password can be reset by the staff themselves once signed in.
+Manager-side password reset for someone who is locked out needs a small server
+function (Cloud Functions) - we can add that later if needed.

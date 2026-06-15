@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seared POS - Manager Console</title>
+<style>
+  html{font-size:clamp(16px,0.5vw + 13px,20px)}
+  :root{--bg:#1f1813;--surface:#2a2019;--panel:#241b15;--line:#3d2f25;--cream:#f2e9d8;--muted:#a89578;--amber:#e2942f;--green:#6fa85c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .app{max-width:820px;margin:0 auto;padding:clamp(16px,3vw,28px) clamp(14px,3vw,24px) 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:.7rem;flex-wrap:wrap;padding-bottom:1rem;border-bottom:1px solid var(--line)}
+  .brand{font-size:1.3rem;letter-spacing:3px;font-weight:700;color:#f4ecdd}
+  .brand small{display:block;font-size:.66rem;letter-spacing:2px;color:var(--muted);margin-top:.25rem;font-weight:400}
+  a.back{color:var(--amber);font-size:.88rem;text-decoration:none}
+  a.back:hover{text-decoration:underline}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:1.3rem 1.4rem;margin-top:1.2rem}
+  h3{margin:0 0 .3rem;font-size:1.1rem;color:#f4ecdd}
+  .hint{font-size:.85rem;color:var(--muted);margin:0 0 1rem;line-height:1.5}
+  label{display:block;font-size:.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:.7rem 0 .3rem}
+  input,select{width:100%;background:var(--bg);color:var(--cream);border:1px solid var(--line);border-radius:9px;padding:.7rem .8rem;font-size:1rem;font-family:inherit;min-height:2.9rem}
+  input:focus,select:focus{outline:none;border-color:var(--amber)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+  button{border:none;border-radius:10px;padding:.8rem 1rem;font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit;min-height:3rem}
+  .primary{background:var(--amber);color:#1f1813}
+  .primary:hover{background:#eda346}
+  .ghost{background:none;border:1px solid var(--line);color:var(--cream)}
+  .danger{background:none;border:1px solid #5a3a30;color:#c98c78;padding:.5rem .7rem;min-height:2.4rem;font-size:.82rem}
+  .danger:hover{border-color:#c0492f;color:#e8a07e}
+  .row{display:flex;align-items:center;gap:.6rem;padding:.6rem 0;border-bottom:1px solid #2e241c;flex-wrap:wrap}
+  .row:last-child{border-bottom:none}
+  .row .nm{flex:1;min-width:7rem}
+  .row .nm b{color:#f2e9d8;font-weight:600}
+  .row .nm span{display:block;font-size:.8rem;color:var(--muted)}
+  .row select{width:auto;min-width:8rem}
+  .msg{font-size:.88rem;margin-top:.9rem;min-height:1.1rem}
+  .msg.err{color:#e8966b}.msg.ok{color:#9ccb86}
+  .hidden{display:none}
+  .soon{font-size:.85rem;color:#7a6b52;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:.9rem 1rem;margin-top:1.2rem;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">SEARED<small>MANAGER CONSOLE</small></div>
+    <a class="back" href="dashboard.html">&larr; Back to dashboard</a>
+  </header>
+
+  <!-- BOOTSTRAP: create first manager -->
+  <div id="bootstrap" class="card hidden">
+    <h3>First-time setup</h3>
+    <p class="hint">No staff accounts exist yet. Create the first <b>manager</b> account. You will use this to manage everyone else.</p>
+    <div class="grid2">
+      <div><label>First name (login)</label><input id="b-name" placeholder="e.g. Axel" /></div>
+      <div><label>Display name</label><input id="b-full" placeholder="e.g. Axel R." /></div>
+    </div>
+    <label>Password (min 6 characters)</label>
+    <input id="b-pass" type="password" placeholder="Password" />
+    <button class="primary" id="b-create" style="margin-top:1.2rem;width:100%">Create manager account</button>
+    <div class="msg" id="b-msg"></div>
+  </div>
+
+  <!-- SIGN IN as manager -->
+  <div id="signin" class="card hidden">
+    <h3>Manager sign in</h3>
+    <p class="hint">Sign in with a manager account to manage staff.</p>
+    <div class="grid2">
+      <div><label>First name</label><input id="s-name" placeholder="First name" /></div>
+      <div><label>Password</label><input id="s-pass" type="password" placeholder="Password" /></div>
+    </div>
+    <button class="primary" id="s-go" style="margin-top:1.2rem;width:100%">Sign in</button>
+    <div class="msg" id="s-msg"></div>
+  </div>
+
+  <!-- CONSOLE -->
+  <div id="console" class="hidden">
+    <div class="card">
+      <h3>Add staff</h3>
+      <p class="hint">Staff sign in with their <b>first name + password</b>. You set their password here while they watch; they can change it later from the logout pill (the key button).</p>
+      <div class="grid2">
+        <div><label>First name (login)</label><input id="a-name" placeholder="e.g. Juan" /></div>
+        <div><label>Display name</label><input id="a-full" placeholder="e.g. Juan D." /></div>
+      </div>
+      <div class="grid2">
+        <div><label>Role</label>
+          <select id="a-role">
+            <option value="waiter">Waiter</option>
+            <option value="cashier">Cashier</option>
+            <option value="kitchen">Kitchen</option>
+            <option value="manager">Manager</option>
+          </select>
+        </div>
+        <div><label>Password (min 6)</label><input id="a-pass" type="password" placeholder="Password" /></div>
+      </div>
+      <button class="primary" id="a-add" style="margin-top:1.2rem;width:100%">Add staff</button>
+      <div class="msg" id="a-msg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Staff</h3>
+      <p class="hint">Change a role from the dropdown, or remove a staff member's access.</p>
+      <div id="staffList"><p class="hint">Loading...</p></div>
+    </div>
+
+    <div class="soon">Menu editing and "available dish" toggles are the next step - they will appear here so you can adjust the menu while the restaurant is open.</div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="app-init.js"></script>
+<script src="staff-id.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+function show(id){ ["bootstrap","signin","console"].forEach(v=>$(v).classList.toggle("hidden", v!==id)); }
+function msg(el,t,c){ $(el).textContent=t; $(el).className="msg "+(c||""); }
+
+const db = window.db;
+let secApp = null;
+function secondary(){
+  if (!secApp) secApp = firebase.initializeApp(firebaseConfig, "secondary");
+  return secApp;
+}
+
+if (!window.CONFIG_OK){ document.body.innerHTML = '<p style="padding:2rem;color:#e8966b">Edit config.js first.</p>'; }
+else { start(); }
+
+async function start(){
+  const snap = await db.collection("staff").limit(1).get();
+  const empty = snap.empty;
+  firebase.auth().onAuthStateChanged(async function(user){
+    if (empty && !user){ show("bootstrap"); return; }
+    if (!user){ show("signin"); return; }
+    // signed in - must be manager
+    const me = await db.collection("staff").doc(user.uid).get();
+    if (me.exists && me.data().role === "manager"){ show("console"); listenStaff(); }
+    else if (empty){ show("bootstrap"); }
+    else {
+      // signed in but not a manager
+      $("signin").classList.remove("hidden"); $("console").classList.add("hidden"); $("bootstrap").classList.add("hidden");
+      msg("s-msg","You are signed in but not a manager. Sign in with a manager account.","err");
+      await firebase.auth().signOut();
+    }
+  });
+}
+
+/* ---- bootstrap first manager ---- */
+$("b-create").addEventListener("click", async () => {
+  const name=$("b-name").value, full=$("b-full").value, pass=$("b-pass").value;
+  if (!name.trim()){ msg("b-msg","Enter a first name","err"); return; }
+  if (pass.length<6){ msg("b-msg","Password must be at least 6 characters","err"); return; }
+  $("b-create").disabled=true; msg("b-msg","Creating...");
+  try {
+    const cred = await firebase.auth().createUserWithEmailAndPassword(StaffId.email(name), pass);
+    await db.collection("staff").doc(cred.user.uid).set({
+      loginName: StaffId.norm(name), displayName: full||name, role:"manager",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // onAuthStateChanged will move us to the console
+  } catch(e){ $("b-create").disabled=false; msg("b-msg", friendly(e), "err"); }
+});
+
+/* ---- manager sign in ---- */
+$("s-go").addEventListener("click", signInManager);
+$("s-pass").addEventListener("keydown", e=>{ if(e.key==="Enter") signInManager(); });
+async function signInManager(){
+  const name=$("s-name").value, pass=$("s-pass").value;
+  if (!name.trim()||!pass){ msg("s-msg","Enter first name and password","err"); return; }
+  $("s-go").disabled=true; msg("s-msg","Signing in...");
+  try { await firebase.auth().signInWithEmailAndPassword(StaffId.email(name), pass); }
+  catch(e){ msg("s-msg","Sign in failed. Check name and password.","err"); }
+  finally { $("s-go").disabled=false; }
+}
+
+/* ---- add staff (secondary app so the manager stays signed in) ---- */
+$("a-add").addEventListener("click", async () => {
+  const name=$("a-name").value, full=$("a-full").value, role=$("a-role").value, pass=$("a-pass").value;
+  if (!name.trim()){ msg("a-msg","Enter a first name","err"); return; }
+  if (pass.length<6){ msg("a-msg","Password must be at least 6 characters","err"); return; }
+  const norm = StaffId.norm(name);
+  $("a-add").disabled=true; msg("a-msg","Adding...");
+  try {
+    const dup = await db.collection("staff").where("loginName","==",norm).limit(1).get();
+    if (!dup.empty){ throw {message:"That first name is already taken. Use a different login name."}; }
+    const sec = secondary();
+    const cred = await sec.auth().createUserWithEmailAndPassword(StaffId.email(name), pass);
+    const uid = cred.user.uid;
+    await sec.auth().signOut();
+    await db.collection("staff").doc(uid).set({
+      loginName: norm, displayName: full||name, role,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    $("a-name").value=""; $("a-full").value=""; $("a-pass").value="";
+    msg("a-msg","Staff added.","ok");
+  } catch(e){ msg("a-msg", friendly(e), "err"); }
+  finally { $("a-add").disabled=false; }
+});
+
+/* ---- live staff list ---- */
+function listenStaff(){
+  db.collection("staff").orderBy("loginName").onSnapshot(snap => {
+    const rows = [];
+    snap.forEach(d => { const s=d.data(); rows.push({id:d.id, ...s}); });
+    $("staffList").innerHTML = rows.map(s =>
+      '<div class="row"><div class="nm"><b>'+(s.displayName||s.loginName)+'</b><span>login: '+s.loginName+'</span></div>'
+      + '<select onchange="setRole(\''+s.id+'\',this.value)">'
+      + ['waiter','cashier','kitchen','manager'].map(r=>'<option value="'+r+'"'+(s.role===r?' selected':'')+'>'+r+'</option>').join('')
+      + '</select>'
+      + '<button class="danger" onclick="removeStaff(\''+s.id+'\',\''+(s.displayName||s.loginName)+'\')">Remove</button></div>'
+    ).join("") || '<p class="hint">No staff yet.</p>';
+  });
+}
+async function setRole(uid, role){ try{ await db.collection("staff").doc(uid).update({role}); }catch(e){ alert("Update failed: "+e.message);} }
+async function removeStaff(uid, label){
+  if (uid === firebase.auth().currentUser.uid){ alert("You cannot remove your own account while signed in."); return; }
+  if (!confirm("Remove "+label+"'s access? They will no longer be able to use the system.")) return;
+  try{ await db.collection("staff").doc(uid).delete(); }catch(e){ alert("Remove failed: "+e.message); }
+}
+
+function friendly(e){
+  var c = e && e.code || "";
+  if (c==="auth/email-already-in-use") return "That first name is already taken.";
+  if (c==="auth/weak-password") return "Password is too weak (min 6 characters).";
+  if (c==="auth/operation-not-allowed") return "Enable Email/Password sign-in in the Firebase console first.";
+  return (e && e.message) || "Something went wrong.";
+}
+</script>
+</body>
+</html>

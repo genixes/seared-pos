@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seared POS - Sign in</title>
+<style>
+  html{font-size:clamp(16px,0.5vw + 13px,20px)}
+  :root{--bg:#1f1813;--surface:#2a2019;--line:#3d2f25;--cream:#f2e9d8;--muted:#a89578;--amber:#e2942f}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;justify-content:center;padding:1.2rem}
+  .card{width:min(94vw,380px);background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:2rem 1.8rem}
+  .brand{font-size:1.8rem;letter-spacing:4px;font-weight:700;text-align:center;color:#f4ecdd}
+  .brand small{display:block;font-size:.66rem;letter-spacing:3px;color:var(--amber);margin-top:.35rem}
+  .sub{text-align:center;color:var(--muted);font-size:.9rem;margin:.7rem 0 1.6rem}
+  label{display:block;font-size:.74rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:.9rem 0 .35rem}
+  input{width:100%;background:var(--bg);color:var(--cream);border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;font-size:1rem;font-family:inherit;min-height:3rem}
+  input:focus{outline:none;border-color:var(--amber)}
+  button{width:100%;margin-top:1.5rem;background:var(--amber);color:#1f1813;border:none;border-radius:11px;padding:.9rem;font-size:1.05rem;font-weight:600;cursor:pointer;font-family:inherit;min-height:3.2rem}
+  button:hover{background:#eda346}
+  button:disabled{opacity:.5;cursor:default}
+  .msg{margin-top:1rem;font-size:.88rem;text-align:center;min-height:1.2rem}
+  .msg.err{color:#e8966b}
+  .msg.ok{color:#9ccb86}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">SEARED<small>STEAKS &amp; CHOPS &middot; POS</small></div>
+    <p class="sub">Sign in to continue</p>
+    <label for="name">First name</label>
+    <input id="name" type="text" autocomplete="username" placeholder="e.g. Juan" />
+    <label for="pass">Password</label>
+    <input id="pass" type="password" autocomplete="current-password" placeholder="Password" />
+    <button id="signin">Sign in</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="app-init.js"></script>
+<script src="staff-id.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  function msg(t,c){ $("msg").textContent=t; $("msg").className="msg "+(c||""); }
+
+  if (!window.CONFIG_OK){ msg("Edit config.js first","err"); }
+  else {
+    firebase.auth().onAuthStateChanged(u => { if (u) location.replace("index.html"); });
+
+    async function doSignIn(){
+      const name = $("name").value;
+      const pass = $("pass").value;
+      if (!name.trim() || !pass){ msg("Enter your first name and password","err"); return; }
+      $("signin").disabled = true; msg("Signing in...");
+      try {
+        await firebase.auth().signInWithEmailAndPassword(StaffId.email(name), pass);
+        msg("Welcome!","ok");
+        location.replace("index.html");
+      } catch(e){
+        $("signin").disabled = false;
+        msg("Sign in failed. Check your name and password.","err");
+      }
+    }
+    $("signin").addEventListener("click", doSignIn);
+    $("pass").addEventListener("keydown", e => { if (e.key==="Enter") doSignIn(); });
+  }
+</script>
+</body>
+</html>

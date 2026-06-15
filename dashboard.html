@@ -81,6 +81,7 @@
   <header>
     <div class="brand">SEARED<small>MANAGER DASHBOARD</small></div>
     <div style="display:flex;align-items:center;gap:.7rem">
+      <a href="manage.html" style="color:#e2942f;text-decoration:none;font-size:.85rem;border:1px solid #3d2f25;border-radius:8px;padding:.45rem .75rem">⚙ Manage</a>
       <span class="hd-r" id="dateLabel"></span>
       <span class="badge" id="status">...</span>
     </div>
@@ -138,9 +139,12 @@
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
+<script src="app-init.js"></script>
 <script src="hardware.js"></script>
+<script src="auth.js"></script>
 <script>
 /* =========================================================================
    Firebase config is loaded from config.js (same as the previous files)
@@ -163,11 +167,10 @@ const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
 $("dateLabel").textContent = now.toLocaleDateString("en-PH",{weekday:"short",year:"numeric",month:"short",day:"numeric"});
 
 try {
-  if (firebaseConfig.apiKey === "PASTE_HERE") { setStatus("Edit config.js first","err"); }
+  if (!window.CONFIG_OK) { setStatus("Edit config.js first","err"); }
   else {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
+    
+    db = window.db;
     setStatus("Connected","ok");
     const startTs = firebase.firestore.Timestamp.fromDate(startOfDay);
     db.collection("sales").where("closedAt",">=",startTs).onSnapshot(s => { todaySales = s.docs.map(d=>d.data()); render(); }, e=>setStatus("Firestore error","err"));

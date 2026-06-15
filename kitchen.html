@@ -68,8 +68,11 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
+<script src="app-init.js"></script>
+<script src="auth.js"></script>
 <script>
 /* =========================================================================
    Firebase config is loaded from config.js (same as the previous files)
@@ -144,12 +147,11 @@ function onNewOrder(){ beep(); showToast("\uD83D\uDD14 New order received"); }
 
 /* ---------- FIREBASE ---------- */
 try {
-  if (firebaseConfig.apiKey === "PASTE_HERE") {
+  if (!window.CONFIG_OK) {
     setStatus("Edit config.js first","err");
   } else {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
+    
+    db = window.db;
     setStatus("Connected","ok");
     listenOrders();
     setInterval(render, 30000);

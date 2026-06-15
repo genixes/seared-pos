@@ -49,9 +49,12 @@
 
 <!-- Firebase (compat version - regular scripts, no npm or build needed) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
+<script src="app-init.js"></script>
 
+<script src="auth.js"></script>
 <script>
 /* =========================================================================
    Firebase config is loaded from config.js
@@ -129,13 +132,12 @@ function setStatus(text, cls){ statusEl.textContent = text; statusEl.className =
 
 let db;
 try {
-  if (firebaseConfig.apiKey === "PASTE_HERE") {
+  if (!window.CONFIG_OK) {
     setStatus("Paste config first", "err");
     menuArea.innerHTML = '<p class="empty">The Firebase config has not been pasted into the code above.</p>';
   } else {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
+    
+    db = window.db;
     setStatus("Connected", "ok");
     listenMenu();
   }
