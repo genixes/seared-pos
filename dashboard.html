@@ -146,6 +146,12 @@
 <script src="hardware.js"></script>
 <script src="auth.js"></script>
 <script>
+  document.addEventListener("auth-ready", function(){
+    if (window.currentRole !== "manager"){ alert("Managers only."); location.replace("index.html"); }
+  });
+</script>
+
+<script>
 /* =========================================================================
    Firebase config is loaded from config.js (same as the previous files)
    ========================================================================= */

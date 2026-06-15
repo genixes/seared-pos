@@ -140,8 +140,10 @@
       <option>Out of stock</option>
       <option>Other</option>
     </select>
-    <label>Manager PIN</label>
-    <input id="voidPin" type="password" inputmode="numeric" placeholder="Enter manager PIN" />
+    <label>Manager first name</label>
+    <input id="voidMgr" type="text" autocomplete="off" placeholder="Manager first name" />
+    <label>Manager password</label>
+    <input id="voidPass" type="password" autocomplete="off" placeholder="Manager password" />
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('voidOverlay')">Cancel</button>
       <button class="btn btn-danger" onclick="confirmVoid()">Void item</button>
@@ -155,15 +157,15 @@
 <script src="config.js"></script>
 <script src="app-init.js"></script>
 <script src="auth.js"></script>
+<script src="staff-id.js"></script>
 <script>
 /* =========================================================================
    Firebase config is loaded from config.js (same as the previous files)
    ========================================================================= */
 
 
-/* Interim manager PIN for voids. In Phase 7 this is replaced by real
-   manager login (role-based). Change "1234" to your own code. */
-const MANAGER_PIN = "1234";
+let _voidMgrApp = null;
+function voidMgrApp(){ if (!_voidMgrApp) _voidMgrApp = firebase.initializeApp(firebaseConfig, "void-mgr"); return _voidMgrApp; }
 
 const statusEl = document.getElementById("status");
 const tableSelect = document.getElementById("tableSelect");
@@ -179,7 +181,8 @@ const moveBtn = document.getElementById("moveBtn");
 const moveSelect = document.getElementById("moveSelect");
 const voidItemLabel = document.getElementById("voidItemLabel");
 const voidReason = document.getElementById("voidReason");
-const voidPin = document.getElementById("voidPin");
+const voidMgr = document.getElementById("voidMgr");
+const voidPass = document.getElementById("voidPass");
 
 function setStatus(t,c){ statusEl.textContent=t; statusEl.className="badge "+(c||""); }
 function peso(n){ return "\u20b1"+Number(n).toLocaleString(); }
@@ -336,23 +339,37 @@ function askVoid(index){
   const it = currentOrder.items[index];
   voidItemLabel.textContent = "Voiding: " + it.qty + "\u00d7 " + it.name + " (sent to kitchen). Manager approval required.";
   voidReason.selectedIndex = 0;
-  voidPin.value = "";
+  voidMgr.value = "";
+  voidPass.value = "";
   openModal("voidOverlay");
 }
 async function confirmVoid(){
-  if (voidPin.value !== MANAGER_PIN){ alert("Incorrect manager PIN."); return; }
+  const name = voidMgr.value.trim(), pass = voidPass.value;
+  if (!name || !pass){ alert("Enter the manager's first name and password."); return; }
   const index = pendingVoidIndex;
   const it = currentOrder.items[index];
   try {
-    await db.collection("voids").add({
+    const sec = voidMgrApp();
+    let cred;
+    try { cred = await sec.auth().signInWithEmailAndPassword(StaffId.email(name), pass); }
+    catch(e){ alert("Manager sign in failed. Check the name and password."); return; }
+    const sdb = sec.firestore();
+    const mdoc = await sdb.collection("staff").doc(cred.user.uid).get();
+    if (!mdoc.exists || mdoc.data().role !== "manager"){
+      await sec.auth().signOut();
+      alert("That account is not a manager. Voids need manager approval.");
+      return;
+    }
+    await sdb.collection("voids").add({
       orderId: currentOrderId, tableId: selectedTable.id,
       itemName: it.name, qty: it.qty, price: it.price,
-      reason: voidReason.value, approvedBy: "manager-pin",
+      reason: voidReason.value, approvedBy: mdoc.data().loginName || name,
       voidedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     const items = currentOrder.items.slice();
     items.splice(index,1);
-    await saveItems(items);
+    await sdb.collection("orders").doc(currentOrderId).update({ items, total: calcTotal(items) });
+    await sec.auth().signOut();
     closeModal("voidOverlay");
   } catch(e){ alert("Void failed: "+e.message); }
 }
