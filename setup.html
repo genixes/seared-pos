@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seared POS - Phase 1</title>
+<style>
+  :root{--bg:#1f1813;--surface:#2a2019;--line:#3d2f25;--cream:#f2e9d8;--muted:#a89578;--amber:#e2942f;--green:#6fa85c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .app{max-width:640px;margin:0 auto;padding:24px 18px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .brand{font-size:22px;letter-spacing:4px;font-weight:700;color:#f4ecdd}
+  .badge{font-size:12px;padding:5px 11px;border-radius:7px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+  .badge.ok{color:#1f1813;background:var(--green);border-color:var(--green)}
+  .badge.err{color:#fff;background:#a33;border-color:#a33}
+  .hint{font-size:13px;color:var(--muted);margin:18px 0;line-height:1.5}
+  .seedbtn{background:var(--amber);color:#1f1813;border:none;border-radius:9px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;margin:6px 0 18px}
+  .seedbtn:hover{background:#eda346}
+  .seedbtn:disabled{opacity:.5;cursor:default}
+  .count{font-size:12px;color:var(--muted);margin-left:10px}
+  section{margin-top:18px}
+  h3{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#7a6b52;margin:0 0 8px}
+  ul{list-style:none;margin:0;padding:0}
+  li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2e241c;font-size:14px}
+  .price{color:var(--amber);font-weight:500}
+  .empty{font-size:14px;color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">SEARED</div>
+    <span class="badge" id="status">Starting...</span>
+  </header>
+
+  <p class="hint">
+    Phase 1 check. Click the button below ONCE to load the menu into Firebase.
+    If the menu lists below (55 items), the connection is working.
+  </p>
+
+  <button class="seedbtn" id="seedBtn">Load menu into Firebase</button>
+  <span class="count" id="count"></span>
+
+  <div id="menuArea">
+    <p class="empty">No menu yet. Click the button above.</p>
+  </div>
+</div>
+
+<!-- Firebase (compat version - regular scripts, no npm or build needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+
+<script>
+/* =========================================================================
+   Firebase config is loaded from config.js
+   -------------------------------------------------------------------------
+   From the Firebase console (Project settings > Your apps > web app),
+   copy the firebaseConfig object and replace the values below.
+   ========================================================================= */
+
+
+/* ---- The FULL Seared menu (55 items, 3 pages). Do not edit this. ---- */
+const MENU = [
+  {id:"app-gambas",category:"Appetizers",name:"Gambas Al Ajillo",price:369,station:"kitchen",available:true},
+  {id:"app-calamari",category:"Appetizers",name:"Calamari Dulce",price:389,station:"kitchen",available:true},
+  {id:"app-sisig",category:"Appetizers",name:"Crispy Sisig",price:259,station:"kitchen",available:true},
+  {id:"app-truffle-chips",category:"Appetizers",name:"Truffle Potato Chips",price:259,station:"kitchen",available:true},
+  {id:"app-bbq-wings",category:"Appetizers",name:"Honey BBQ Wings",price:279,station:"kitchen",available:true},
+  {id:"soup-seafood-chowder",category:"Soup",name:"Seafood Chowder",price:359,station:"kitchen",available:true},
+  {id:"soup-tomato",category:"Soup",name:"Tomato Soup",price:239,station:"kitchen",available:true},
+  {id:"soup-mushroom",category:"Soup",name:"Mushroom Soup",price:259,station:"kitchen",available:true},
+  {id:"soup-french-onion",category:"Soup",name:"French Onion Soup",price:219,station:"kitchen",available:true},
+  {id:"fish-salmon",category:"Fish",name:"Seared Salmon Fillet",price:749,station:"kitchen",available:true},
+  {id:"fish-grouper",category:"Fish",name:"Panfried Grouper",price:659,station:"kitchen",available:true},
+  {id:"salad-caesar",category:"Salad",name:"Caesar Salad",price:299,station:"kitchen",available:true},
+  {id:"salad-kani-ebiko",category:"Salad",name:"Kani Ebiko Salad",price:319,station:"kitchen",available:true},
+  {id:"salad-greek",category:"Salad",name:"Greek Salad",price:319,station:"kitchen",available:true},
+  {id:"pasta-truffle-cream",category:"Pastas",name:"Truffle Cream",price:459,station:"kitchen",available:true},
+  {id:"pasta-seafood-rose",category:"Pastas",name:"Seafood Rose",price:369,station:"kitchen",available:true},
+  {id:"pasta-lemon-garlic-shrimp",category:"Pastas",name:"Lemon Garlic Shrimp",price:369,station:"kitchen",available:true},
+  {id:"pasta-chicken-alfredo",category:"Pastas",name:"Chicken Alfredo",price:359,station:"kitchen",available:true},
+  {id:"pasta-beef-ragu",category:"Pastas",name:"Beef Ragu",price:389,station:"kitchen",available:true},
+  {id:"skillet-lengua",category:"Skillet",name:"Lengua Estofada",price:589,station:"kitchen",available:true},
+  {id:"skillet-callos",category:"Skillet",name:"Callos",price:489,station:"kitchen",available:true},
+  {id:"steak-ribeye-350",category:"Steaks",name:"Prime Rib-eye Steak (350g)",price:2199,station:"kitchen",available:true},
+  {id:"steak-ribeye-450",category:"Steaks",name:"Prime Rib-eye Steak (450g)",price:2599,station:"kitchen",available:true},
+  {id:"steak-new-york",category:"Steaks",name:"New York Steak",price:999,station:"kitchen",available:true},
+  {id:"steak-beef-salpicao",category:"Steaks",name:"Beef Salpicao",price:659,station:"kitchen",available:true},
+  {id:"chops-godfather",category:"Chops",name:"God Father Chops",price:489,station:"kitchen",available:true},
+  {id:"chops-bbq-pork",category:"Chops",name:"BBQ Pork Steak",price:489,station:"kitchen",available:true},
+  {id:"chops-smoked-pork",category:"Chops",name:"Smoked Pork Steak",price:489,station:"kitchen",available:true},
+  {id:"side-plain-rice",category:"Sides",name:"Plain Rice",price:49,station:"kitchen",available:true},
+  {id:"side-garlic-rice",category:"Sides",name:"Garlic Rice",price:69,station:"kitchen",available:true},
+  {id:"side-cajun-rice",category:"Sides",name:"Cajun Rice",price:79,station:"kitchen",available:true},
+  {id:"side-buttered-veg",category:"Sides",name:"Buttered Vegetables",price:99,station:"kitchen",available:true},
+  {id:"side-french-fries",category:"Sides",name:"French Fries",price:99,station:"kitchen",available:true},
+  {id:"side-mashed-potatoes",category:"Sides",name:"Mashed Potatoes",price:119,station:"kitchen",available:true},
+  {id:"dessert-panna-cotta",category:"Desserts",name:"Panna Cotta",price:225,station:"kitchen",available:true},
+  {id:"dessert-molten-lava",category:"Desserts",name:"Molten Lava Cake",price:245,station:"kitchen",available:true},
+  {id:"dessert-creme-brulee",category:"Desserts",name:"Creme Brulee",price:225,station:"kitchen",available:true},
+  {id:"dessert-ice-cream",category:"Desserts",name:"Ice Cream",price:69,station:"kitchen",available:true},
+  {id:"bfast-steak-eggs",category:"Breakfast",name:"Steak & Eggs",price:995,station:"kitchen",available:true},
+  {id:"bfast-bacon-eggs",category:"Breakfast",name:"Bacon & Eggs",price:289,station:"kitchen",available:true},
+  {id:"bfast-chops-eggs",category:"Breakfast",name:"Chops & Eggs",price:415,station:"kitchen",available:true},
+  {id:"bfast-hungarian-eggs",category:"Breakfast",name:"Grilled Hungarian & Eggs",price:319,station:"kitchen",available:true},
+  {id:"omelette-ham-cheese",category:"Omelette",name:"Ham & Cheese",price:239,station:"kitchen",available:true},
+  {id:"omelette-bacon-mushroom",category:"Omelette",name:"Bacon & Mushroom",price:219,station:"kitchen",available:true},
+  {id:"omelette-tomato-onion",category:"Omelette",name:"Tomato & Onion",price:209,station:"kitchen",available:true},
+  {id:"fil-danggit",category:"Filipino Breakfast",name:"Crispy Bantayan Danggit",price:199,station:"kitchen",available:true},
+  {id:"fil-beef-tapa",category:"Filipino Breakfast",name:"Beef Tapa",price:339,station:"kitchen",available:true},
+  {id:"fil-pork-tocino",category:"Filipino Breakfast",name:"Pork Tocino",price:249,station:"kitchen",available:true},
+  {id:"fil-longganisa",category:"Filipino Breakfast",name:"Longganisa",price:169,station:"kitchen",available:true},
+  {id:"fil-crispy-bangus",category:"Filipino Breakfast",name:"Crispy Bangus",price:249,station:"kitchen",available:true},
+  {id:"coffee-americano",category:"Coffee",name:"Americano",price:109,station:"bar",available:true},
+  {id:"coffee-brewed",category:"Coffee",name:"Brewed Coffee",price:109,station:"bar",available:true},
+  {id:"coffee-cappuccino",category:"Coffee",name:"Cappuccino",price:109,station:"bar",available:true},
+  {id:"coffee-latte",category:"Coffee",name:"Latte",price:109,station:"bar",available:true},
+  {id:"coffee-espresso",category:"Coffee",name:"Espresso",price:109,station:"bar",available:true}
+];
+
+const statusEl = document.getElementById("status");
+const seedBtn  = document.getElementById("seedBtn");
+const menuArea = document.getElementById("menuArea");
+const countEl  = document.getElementById("count");
+
+function setStatus(text, cls){ statusEl.textContent = text; statusEl.className = "badge " + (cls||""); }
+
+let db;
+try {
+  if (firebaseConfig.apiKey === "PASTE_HERE") {
+    setStatus("Paste config first", "err");
+    menuArea.innerHTML = '<p class="empty">The Firebase config has not been pasted into the code above.</p>';
+  } else {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    setStatus("Connected", "ok");
+    listenMenu();
+  }
+} catch (e) {
+  setStatus("Error", "err");
+  menuArea.innerHTML = '<p class="empty">' + e.message + '</p>';
+}
+
+/* Load the menu into Firebase (only needed once) */
+seedBtn.addEventListener("click", async () => {
+  if (!db) { alert("Paste your Firebase config first."); return; }
+  seedBtn.disabled = true;
+  seedBtn.textContent = "Loading...";
+  try {
+    const batch = db.batch();
+    MENU.forEach(item => batch.set(db.collection("menu").doc(item.id), item));
+    await batch.commit();
+    seedBtn.textContent = "Menu loaded (" + MENU.length + " items)";
+  } catch (e) {
+    seedBtn.disabled = false;
+    seedBtn.textContent = "Load menu into Firebase";
+    alert("Failed: " + e.message);
+  }
+});
+
+/* Read the menu in real-time from Firebase */
+function listenMenu(){
+  db.collection("menu").orderBy("category").onSnapshot(snap => {
+    if (snap.empty) {
+      menuArea.innerHTML = '<p class="empty">No menu yet. Click the button above.</p>';
+      countEl.textContent = "";
+      return;
+    }
+    countEl.textContent = snap.size + " items in Firebase";
+    const groups = {};
+    snap.forEach(doc => {
+      const it = doc.data();
+      (groups[it.category] = groups[it.category] || []).push(it);
+    });
+    let html = "";
+    Object.keys(groups).forEach(cat => {
+      html += "<section><h3>" + cat + "</h3><ul>";
+      groups[cat].forEach(it => {
+        html += "<li><span>" + it.name + "</span><span class='price'>\u20b1" + it.price + "</span></li>";
+      });
+      html += "</ul></section>";
+    });
+    menuArea.innerHTML = html;
+  }, err => {
+    setStatus("Firestore error", "err");
+    menuArea.innerHTML = '<p class="empty">' + err.message + '</p>';
+  });
+}
+</script>
+</body>
+</html>

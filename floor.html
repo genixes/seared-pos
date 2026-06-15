@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seared POS - Floor View</title>
+<style>
+  /* Fluid base font: scales smoothly from phone (16px) to large monitor (20px) */
+  html{font-size:clamp(16px, 0.5vw + 13px, 20px)}
+  :root{--bg:#1f1813;--surface:#2a2019;--line:#3d2f25;--cream:#f2e9d8;--muted:#a89578;--amber:#e2942f;--green:#6fa85c;--copper:#d97746}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .app{max-width:1360px;margin:0 auto;padding:clamp(16px,3vw,28px) clamp(14px,2.5vw,24px) 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:.7rem;flex-wrap:wrap;padding-bottom:1rem;border-bottom:1px solid var(--line)}
+  .brand{font-size:1.4rem;letter-spacing:3px;font-weight:700;color:#f4ecdd}
+  .brand small{display:block;font-size:.68rem;letter-spacing:2px;color:var(--muted);margin-top:.25rem;font-weight:400}
+  .badge{font-size:.85rem;padding:.5rem .85rem;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .badge.ok{color:#1f1813;background:var(--green);border-color:var(--green)}
+  .badge.err{color:#fff;background:#a33;border-color:#a33}
+  .setupbtn{background:var(--amber);color:#1f1813;border:none;border-radius:11px;padding:.85rem 1.4rem;font-size:1rem;font-weight:600;cursor:pointer;margin:1.2rem 0 .3rem;min-height:3.1rem}
+  .setupbtn:hover{background:#eda346}
+  .setupbtn:active{transform:scale(.99)}
+  .hint{font-size:.92rem;color:var(--muted);margin:.7rem 0 .3rem;line-height:1.55;max-width:60ch}
+  .chips{display:flex;gap:.7rem;flex-wrap:wrap;margin:1.2rem 0 .3rem}
+  .chip{display:flex;align-items:center;gap:.55rem;font-size:.95rem;color:#cdbea2;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:.6rem 1rem}
+  .chip b{color:#f2e9d8;font-weight:600}
+  .dot{width:.6rem;height:.6rem;border-radius:50%;display:inline-block}
+  .d-avl{background:var(--green)}.d-occ{background:var(--amber)}.d-bil{background:var(--copper)}
+  .zone{margin-top:1.4rem}
+  .zone-t{font-size:.78rem;letter-spacing:2px;text-transform:uppercase;color:#8a7a5f;margin:0 0 .8rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem}
+  .tcard{background:var(--surface);border:1px solid var(--line);border-left:4px solid #4a3b30;border-radius:12px;padding:1rem 1.1rem;cursor:pointer;transition:border-color .15s,transform .1s;min-height:5.2rem;display:flex;flex-direction:column;justify-content:space-between}
+  .tcard:hover{border-color:var(--amber);transform:translateY(-1px)}
+  .tcard:active{transform:scale(.98)}
+  .tcard.occupied{border-left-color:var(--amber)}
+  .tcard.billing{border-left-color:var(--copper)}
+  .tcard.available{border-left-color:var(--green)}
+  .tc-r1{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.7rem}
+  .tc-num{font-size:1.5rem;font-weight:600;color:#f4ecdd}
+  .pill{display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;padding:.3rem .65rem;border-radius:7px;text-transform:capitalize;white-space:nowrap}
+  .p-available{background:rgba(111,168,92,.16);color:#9ccb86}
+  .p-occupied{background:rgba(226,148,47,.16);color:#e8a44a}
+  .p-billing{background:rgba(217,119,70,.18);color:#e8966b}
+  .tc-seats{font-size:.92rem;color:var(--muted);display:flex;align-items:center;gap:.4rem}
+  .empty{font-size:1rem;color:var(--amber);margin-top:1.2rem}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">SEARED<small>FLOOR VIEW</small></div>
+    <span class="badge" id="status">Starting...</span>
+  </header>
+
+  <p class="hint">
+    Click "Set up tables" ONCE to create the tables. After that, tap any table to
+    change its status (available &rarr; occupied &rarr; billing &rarr; available).
+    It saves to Firebase instantly.
+  </p>
+  <button class="setupbtn" id="setupBtn">Set up tables</button>
+
+  <div class="chips" id="chips" style="display:none">
+    <span class="chip"><span class="dot d-avl"></span>Available <b id="c-avl">0</b></span>
+    <span class="chip"><span class="dot d-occ"></span>Occupied <b id="c-occ">0</b></span>
+    <span class="chip"><span class="dot d-bil"></span>Billing <b id="c-bil">0</b></span>
+  </div>
+
+  <div id="floor">
+    <p class="empty">No tables yet. Click "Set up tables" above.</p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script>
+/* =========================================================================
+   Firebase config is loaded from config.js
+   (Same as Phase 1 - you can copy it from your phase1 file)
+   ========================================================================= */
+
+
+/* ---- The Seared tables (based on the floor mockup) ---- */
+const TABLES = [
+  {id:"B1",label:"B1",zone:"Booths",seats:4,status:"available",orderId:null},
+  {id:"B2",label:"B2",zone:"Booths",seats:4,status:"available",orderId:null},
+  {id:"B3",label:"B3",zone:"Booths",seats:6,status:"available",orderId:null},
+  {id:"T1",label:"T1",zone:"Dining tables",seats:2,status:"available",orderId:null},
+  {id:"T2",label:"T2",zone:"Dining tables",seats:2,status:"available",orderId:null},
+  {id:"T3",label:"T3",zone:"Dining tables",seats:4,status:"available",orderId:null},
+  {id:"T4",label:"T4",zone:"Dining tables",seats:4,status:"available",orderId:null},
+  {id:"T5",label:"T5",zone:"Dining tables",seats:4,status:"available",orderId:null},
+  {id:"T6",label:"T6",zone:"Dining tables",seats:6,status:"available",orderId:null}
+];
+
+const ZONE_ORDER = ["Booths","Dining tables"];
+const NEXT_STATUS = { available:"occupied", occupied:"billing", billing:"available" };
+
+const statusEl = document.getElementById("status");
+const setupBtn = document.getElementById("setupBtn");
+const floorEl  = document.getElementById("floor");
+const chipsEl  = document.getElementById("chips");
+
+function setStatus(t,c){ statusEl.textContent=t; statusEl.className="badge "+(c||""); }
+
+let db;
+try {
+  if (firebaseConfig.apiKey === "PASTE_HERE") {
+    setStatus("Edit config.js first","err");
+    floorEl.innerHTML = '<p class="empty">The Firebase config has not been pasted into the code.</p>';
+  } else {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    setStatus("Connected","ok");
+    listenTables();
+  }
+} catch(e){ setStatus("Error","err"); floorEl.innerHTML='<p class="empty">'+e.message+'</p>'; }
+
+/* Create the tables in Firebase (only once) */
+setupBtn.addEventListener("click", async () => {
+  if (!db){ alert("Paste your Firebase config first."); return; }
+  setupBtn.disabled = true; setupBtn.textContent = "Setting up...";
+  try {
+    const batch = db.batch();
+    TABLES.forEach(t => batch.set(db.collection("tables").doc(t.id), t, { merge:true }));
+    await batch.commit();
+    setupBtn.textContent = "Tables ready";
+  } catch(e){ setupBtn.disabled=false; setupBtn.textContent="Set up tables"; alert("Failed: "+e.message); }
+});
+
+/* Tap a table to change its status (writes to Firebase) */
+async function cycleTable(id, current){
+  const next = NEXT_STATUS[current] || "available";
+  try { await db.collection("tables").doc(id).update({ status: next }); }
+  catch(e){ alert("Update failed: "+e.message); }
+}
+
+/* Read the tables in real-time */
+function listenTables(){
+  db.collection("tables").orderBy("label").onSnapshot(snap => {
+    if (snap.empty){
+      floorEl.innerHTML = '<p class="empty">No tables yet. Click "Set up tables" above.</p>';
+      chipsEl.style.display = "none";
+      return;
+    }
+    const tables = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+
+    const counts = { available:0, occupied:0, billing:0 };
+    tables.forEach(t => { if(counts[t.status]!==undefined) counts[t.status]++; });
+    document.getElementById("c-avl").textContent = counts.available;
+    document.getElementById("c-occ").textContent = counts.occupied;
+    document.getElementById("c-bil").textContent = counts.billing;
+    chipsEl.style.display = "flex";
+
+    const groups = {};
+    tables.forEach(t => (groups[t.zone] = groups[t.zone] || []).push(t));
+
+    let html = "";
+    ZONE_ORDER.forEach(zone => {
+      if (!groups[zone]) return;
+      html += '<div class="zone"><p class="zone-t">'+zone+'</p><div class="grid">';
+      groups[zone].forEach(t => {
+        html += '<div class="tcard '+t.status+'" onclick="cycleTable(\''+t.id+'\',\''+t.status+'\')">'
+              +   '<div class="tc-r1"><span class="tc-num">'+t.label+'</span>'
+              +     '<span class="pill p-'+t.status+'"><span class="dot d-'+t.status.slice(0,3)+'"></span>'+t.status+'</span></div>'
+              +   '<div class="tc-seats">'+t.seats+' seats</div>'
+              + '</div>';
+      });
+      html += '</div></div>';
+    });
+    floorEl.innerHTML = html;
+  }, err => { setStatus("Firestore error","err"); floorEl.innerHTML='<p class="empty">'+err.message+'</p>'; });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seared POS</title>
+<style>
+  html{font-size:clamp(16px, 0.5vw + 13px, 20px)}
+  :root{--bg:#1f1813;--surface:#2a2019;--line:#3d2f25;--cream:#f2e9d8;--muted:#a89578;--amber:#e2942f}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+  .app{max-width:900px;margin:0 auto;padding:clamp(24px,5vw,48px) clamp(16px,3vw,28px)}
+  .brand{font-size:2rem;letter-spacing:5px;font-weight:700;color:#f4ecdd;text-align:center}
+  .brand small{display:block;font-size:.7rem;letter-spacing:3px;color:var(--amber);margin-top:.4rem}
+  .tag{text-align:center;color:var(--muted);font-size:.95rem;margin:.8rem 0 2rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:1.3rem 1.3rem;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:.4rem;transition:border-color .15s,transform .1s}
+  .card:hover{border-color:var(--amber);transform:translateY(-2px)}
+  .card .ic{font-size:1.6rem}
+  .card .t{font-size:1.15rem;font-weight:600;color:#f4ecdd}
+  .card .d{font-size:.85rem;color:var(--muted);line-height:1.4}
+  .setup{margin-top:1.6rem;text-align:center}
+  .setup a{color:var(--amber);font-size:.9rem;text-decoration:none}
+  .setup a:hover{text-decoration:underline}
+  .note{margin-top:2rem;font-size:.82rem;color:var(--muted);text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand">SEARED<small>STEAKS &amp; CHOPS &middot; POS</small></div>
+  <p class="tag">Open the screen for this device.</p>
+  <div class="grid">
+    <a class="card" href="floor.html"><span class="ic">&#128722;</span><span class="t">Floor</span><span class="d">Tables overview and status</span></a>
+    <a class="card" href="order.html"><span class="ic">&#128221;</span><span class="t">Order Entry</span><span class="d">For waiters - take and send orders</span></a>
+    <a class="card" href="kitchen.html"><span class="ic">&#127859;</span><span class="t">Kitchen Display</span><span class="d">For the kitchen - cook and update status</span></a>
+    <a class="card" href="billing.html"><span class="ic">&#129534;</span><span class="t">Billing</span><span class="d">For the cashier - bill and receipt</span></a>
+    <a class="card" href="dashboard.html"><span class="ic">&#128202;</span><span class="t">Manager Dashboard</span><span class="d">Sales, reports, and voids</span></a>
+  </div>
+  <div class="setup"><a href="setup.html">One-time setup: load the menu &rarr;</a></div>
+  <p class="note">Each device just opens this page once, then taps the screen it needs.<br>Tip: bookmark the screen on each tablet for quick access.</p>
+</div>
+</body>
+</html>

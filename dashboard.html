@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seared POS - Manager Dashboard</title>
+<style>
+  html{font-size:clamp(16px, 0.5vw + 13px, 20px)}
+  :root{--bg:#1f1813;--surface:#2a2019;--panel:#241b15;--line:#3d2f25;--cream:#f2e9d8;--muted:#a89578;--amber:#e2942f;--green:#6fa85c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .app{max-width:1300px;margin:0 auto;padding:clamp(14px,2.5vw,24px) clamp(14px,2.5vw,24px) 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:.7rem;flex-wrap:wrap;padding-bottom:1rem;border-bottom:1px solid var(--line)}
+  .brand{font-size:1.4rem;letter-spacing:3px;font-weight:700;color:#f4ecdd}
+  .brand small{display:block;font-size:.68rem;letter-spacing:2px;color:var(--muted);margin-top:.25rem;font-weight:400}
+  .hd-r{font-size:.85rem;color:var(--muted);text-align:right;line-height:1.4}
+  .badge{font-size:.82rem;padding:.45rem .75rem;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+  .badge.ok{color:#1f1813;background:var(--green);border-color:var(--green)}
+  .badge.err{color:#fff;background:#a33;border-color:#a33}
+  .mcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;margin-top:1.2rem}
+  .mc{background:var(--surface);border-radius:11px;padding:.9rem 1rem}
+  .mc .l{font-size:.82rem;color:var(--muted)}
+  .mc .v{font-size:1.5rem;font-weight:600;color:#f4ecdd;margin-top:.25rem}
+  .live{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:.8rem 1rem;margin-top:.9rem}
+  .live-t{font-size:.72rem;letter-spacing:1px;text-transform:uppercase;color:#7a6b52;display:flex;align-items:center;gap:.4rem}
+  .ldot{width:.5rem;height:.5rem;border-radius:50%;background:var(--green)}
+  .lstat{font-size:.9rem;color:#cdbea2}
+  .lstat b{color:#f2e9d8;font-weight:600}
+  .lsep{color:var(--line)}
+  .cols{display:grid;grid-template-columns:1.4fr 1fr;gap:.9rem;margin-top:.9rem}
+  @media(max-width:760px){.cols{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.95rem 1.1rem}
+  .p-t{font-size:.72rem;letter-spacing:1px;text-transform:uppercase;color:#7a6b52;margin:0 0 .9rem}
+  .chart{display:flex;align-items:flex-end;gap:.4rem;height:9rem}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:.3rem;height:100%;justify-content:flex-end}
+  .bar i{display:block;width:100%;background:var(--amber);border-radius:3px 3px 0 0;min-height:2px}
+  .bar span{font-size:.62rem;color:#8a7a5f}
+  .row{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid #2e241c;font-size:.92rem}
+  .row:last-child{border-bottom:none}
+  .row .n{flex:1;color:#f2e9d8}
+  .row .sub{color:var(--muted);font-size:.82rem}
+  .row .val{color:var(--amber);font-weight:600;white-space:nowrap}
+  .pm{display:flex;justify-content:space-between;padding:.45rem 0;font-size:.92rem;color:#cdbea2}
+  .pm b{color:#f2e9d8;font-weight:600}
+  .empty{font-size:.9rem;color:#7a6b52;padding:.6rem 0}
+  .reportbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:.95rem 1.1rem;margin-top:.9rem}
+  .reportbar .rt{font-size:.92rem;color:#f2e9d8}
+  .reportbar .rt span{display:block;font-size:.8rem;color:var(--muted);margin-top:.2rem}
+  .rbtn{background:var(--amber);color:#1f1813;border:none;border-radius:10px;padding:.8rem 1.3rem;font-size:.95rem;font-weight:600;cursor:pointer;font-family:inherit;min-height:3rem}
+  .rbtn:hover{background:#eda346}
+  /* report modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:1.5rem 1rem;overflow:auto}
+  .overlay.show{display:flex}
+  #reportBox{background:#fff;color:#2a211b;width:min(94vw,560px);border-radius:8px;overflow:hidden}
+  .rp-top{height:5px;background:var(--amber)}
+  .rp-in{padding:1.3rem 1.5rem}
+  .rp-brand{font-size:1.4rem;letter-spacing:2px;font-weight:700}
+  .rp-title{font-size:.95rem;color:#ba7517;font-weight:600;margin-top:.15rem}
+  .rp-meta{font-size:.78rem;color:#7a6e60;margin-top:.5rem}
+  .rp-sec{margin-top:1.2rem}
+  .rp-sec h4{font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:#9a8b78;margin:0 0 .5rem}
+  .rp-line{display:flex;justify-content:space-between;font-size:.88rem;padding:.25rem 0;border-bottom:1px solid #f0ebe1}
+  .rp-line:last-child{border-bottom:none}
+  .rp-tot{font-weight:700;color:#ba7517;border-top:1.5px solid #e2c9a0;border-bottom:none;padding-top:.4rem}
+  .rp-actions{display:flex;gap:.6rem;width:min(94vw,560px);margin-top:.9rem}
+  .rp-actions button{flex:1;border:none;border-radius:10px;padding:.8rem;font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit;min-height:3rem}
+  .btn-primary{background:var(--amber);color:#1f1813}
+  .btn-ghost{background:var(--surface);border:1px solid var(--line);color:var(--cream)}
+  .rwrap{display:flex;flex-direction:column;align-items:center;width:100%}
+  @media print{
+    body *{visibility:hidden}
+    #reportBox,#reportBox *{visibility:visible}
+    #reportBox{position:absolute;left:0;top:0;width:100%}
+    .overlay{background:none;display:block;padding:0;overflow:visible}
+    .rp-actions{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">SEARED<small>MANAGER DASHBOARD</small></div>
+    <div style="display:flex;align-items:center;gap:.7rem">
+      <span class="hd-r" id="dateLabel"></span>
+      <span class="badge" id="status">...</span>
+    </div>
+  </header>
+
+  <div class="mcards">
+    <div class="mc"><div class="l">Sales today</div><div class="v" id="m-sales">&#8369;0</div></div>
+    <div class="mc"><div class="l">Orders</div><div class="v" id="m-orders">0</div></div>
+    <div class="mc"><div class="l">Items sold</div><div class="v" id="m-items">0</div></div>
+    <div class="mc"><div class="l">Avg check</div><div class="v" id="m-avg">&#8369;0</div></div>
+  </div>
+
+  <div class="live">
+    <span class="live-t"><span class="ldot"></span>Right now</span>
+    <span class="lstat" id="l-tables">Tables ...</span><span class="lsep">|</span>
+    <span class="lstat" id="l-kitchen">Kitchen ...</span>
+  </div>
+
+  <div class="panel" style="margin-top:.9rem">
+    <p class="p-t">Sales by hour</p>
+    <div class="chart" id="chart"></div>
+    <p class="empty" id="chartEmpty" style="display:none">No sales yet today.</p>
+  </div>
+
+  <div class="cols">
+    <div class="panel">
+      <p class="p-t">Top items today</p>
+      <div id="topItems"><p class="empty">No sales yet.</p></div>
+    </div>
+    <div class="panel">
+      <p class="p-t">Payment breakdown</p>
+      <div id="payments"><p class="empty">No sales yet.</p></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:.9rem">
+    <p class="p-t">Voids today</p>
+    <div id="voids"><p class="empty">No voids today.</p></div>
+  </div>
+
+  <div class="reportbar">
+    <div class="rt">End-of-day report<span id="reportSub">Review before closing</span></div>
+    <button class="rbtn" id="reportBtn">Generate report</button>
+  </div>
+</div>
+
+<div class="overlay" id="reportOverlay">
+  <div class="rwrap">
+    <div id="reportBox"></div>
+    <div class="rp-actions">
+      <button class="btn-ghost" onclick="closeReport()">Close</button>
+      <button class="btn-primary" onclick="Hardware.printReceipt()">Print</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="hardware.js"></script>
+<script>
+/* =========================================================================
+   Firebase config is loaded from config.js (same as the previous files)
+   ========================================================================= */
+
+
+const $ = id => document.getElementById(id);
+function setStatus(t,c){ $("status").textContent=t; $("status").className="badge "+(c||""); }
+function peso(n){ return "\u20b1"+Math.round(n).toLocaleString(); }
+function pesoF(n){ return Number(n).toLocaleString(undefined,{minimumFractionDigits:2}); }
+
+let db;
+let todaySales = [];
+let tablesArr = [];
+let activeOrders = [];
+let todayVoids = [];
+
+const now = new Date();
+const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+$("dateLabel").textContent = now.toLocaleDateString("en-PH",{weekday:"short",year:"numeric",month:"short",day:"numeric"});
+
+try {
+  if (firebaseConfig.apiKey === "PASTE_HERE") { setStatus("Edit config.js first","err"); }
+  else {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    setStatus("Connected","ok");
+    const startTs = firebase.firestore.Timestamp.fromDate(startOfDay);
+    db.collection("sales").where("closedAt",">=",startTs).onSnapshot(s => { todaySales = s.docs.map(d=>d.data()); render(); }, e=>setStatus("Firestore error","err"));
+    db.collection("voids").where("voidedAt",">=",startTs).onSnapshot(s => { todayVoids = s.docs.map(d=>d.data()); render(); });
+    db.collection("tables").onSnapshot(s => { tablesArr = s.docs.map(d=>d.data()); render(); });
+    db.collection("orders").where("status","in",["open","billing"]).onSnapshot(s => {
+      activeOrders = s.docs.map(d=>d.data()).filter(o => (o.items||[]).some(it => ["pending","cooking","ready"].includes(it.status)));
+      render();
+    });
+  }
+} catch(e){ setStatus("Error","err"); alert(e.message); }
+
+function aggregate(){
+  const salesTotal = todaySales.reduce((s,x)=>s+(x.total||0),0);
+  const orders = todaySales.length;
+  const itemsSold = todaySales.reduce((s,x)=>s+(x.items||[]).reduce((a,b)=>a+b.qty,0),0);
+  const avg = orders ? salesTotal/orders : 0;
+  // payments
+  const pay = {};
+  todaySales.forEach(x => { pay[x.paymentMethod] = (pay[x.paymentMethod]||0) + x.total; });
+  // top items
+  const items = {};
+  todaySales.forEach(x => (x.items||[]).forEach(it => {
+    const k = it.name;
+    items[k] = items[k] || { qty:0, rev:0 };
+    items[k].qty += it.qty; items[k].rev += it.price*it.qty;
+  }));
+  const top = Object.entries(items).map(([n,v])=>({n,...v})).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  // hourly
+  const hourly = new Array(24).fill(0);
+  todaySales.forEach(x => { if(x.closedAt && x.closedAt.toDate){ hourly[x.closedAt.toDate().getHours()] += x.total; } });
+  // sums for report
+  const sub = todaySales.reduce((s,x)=>s+(x.subtotal||0),0);
+  const discount = todaySales.reduce((s,x)=>s+(x.discountAmt||0),0);
+  const service = todaySales.reduce((s,x)=>s+(x.serviceCharge||0),0);
+  const vat = todaySales.reduce((s,x)=>s+(x.vat||0),0);
+  const vatable = todaySales.reduce((s,x)=>s+(x.vatable||0),0);
+  return { salesTotal, orders, itemsSold, avg, pay, top, hourly, sub, discount, service, vat, vatable };
+}
+
+function hourLabel(h){ return h===0?"12a":h<12?h+"a":h===12?"12p":(h-12)+"p"; }
+
+function render(){
+  const a = aggregate();
+  $("m-sales").textContent = peso(a.salesTotal);
+  $("m-orders").textContent = a.orders;
+  $("m-items").textContent = a.itemsSold;
+  $("m-avg").textContent = peso(a.avg);
+
+  // live
+  const tc = { available:0, occupied:0, billing:0 };
+  tablesArr.forEach(t => { if(tc[t.status]!==undefined) tc[t.status]++; });
+  $("l-tables").innerHTML = "Tables <b>"+tc.occupied+" occupied</b> \u00b7 "+tc.available+" free \u00b7 "+tc.billing+" billing";
+  $("l-kitchen").innerHTML = "Kitchen <b>"+activeOrders.length+" active tickets</b>";
+
+  // chart
+  const hours = a.hourly;
+  const withSale = hours.map((v,h)=>({v,h})).filter(o=>o.v>0);
+  if (!withSale.length){ $("chart").innerHTML=""; $("chartEmpty").style.display="block"; }
+  else {
+    $("chartEmpty").style.display="none";
+    const minH = withSale[0].h, maxH = withSale[withSale.length-1].h;
+    const max = Math.max(...hours);
+    let bars = "";
+    for (let h=minH; h<=maxH; h++){
+      const pct = max ? Math.round(hours[h]/max*100) : 0;
+      bars += '<div class="bar" title="'+peso(hours[h])+'"><i style="height:'+pct+'%"></i><span>'+hourLabel(h)+'</span></div>';
+    }
+    $("chart").innerHTML = bars;
+  }
+
+  // top items
+  $("topItems").innerHTML = a.top.length
+    ? a.top.map(t => '<div class="row"><span class="n">'+t.n+' <span class="sub">\u00b7 '+t.qty+' sold</span></span><span class="val">'+peso(t.rev)+'</span></div>').join("")
+    : '<p class="empty">No sales yet.</p>';
+
+  // payments
+  const methods = ["Cash","Card","GCash","Maya"];
+  const hasPay = Object.keys(a.pay).length;
+  $("payments").innerHTML = hasPay
+    ? methods.filter(m=>a.pay[m]).map(m => '<div class="pm"><span>'+m+'</span><b>'+peso(a.pay[m])+'</b></div>').join("")
+    : '<p class="empty">No sales yet.</p>';
+
+  // voids
+  $("voids").innerHTML = todayVoids.length
+    ? todayVoids.map(v => '<div class="row"><span class="n">'+v.qty+'\u00d7 '+v.itemName+' <span class="sub">\u00b7 '+v.reason+' \u00b7 '+(v.tableId||"")+'</span></span><span class="val" style="color:#e8966b">'+peso(v.price*v.qty)+'</span></div>').join("")
+    : '<p class="empty">No voids today.</p>';
+
+  lastAgg = a;
+}
+
+let lastAgg = null;
+
+/* ---------- END-OF-DAY REPORT ---------- */
+$("reportBtn").addEventListener("click", () => {
+  const a = lastAgg || aggregate();
+  const dateStr = now.toLocaleDateString("en-PH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  const methods = ["Cash","Card","GCash","Maya"];
+  const payRows = methods.filter(m=>a.pay[m]).map(m => '<div class="rp-line"><span>'+m+'</span><span>'+pesoF(a.pay[m])+'</span></div>').join("")
+    || '<div class="rp-line"><span>No payments</span><span>0.00</span></div>';
+  const topRows = a.top.map(t => '<div class="rp-line"><span>'+t.n+' \u00b7 '+t.qty+' sold</span><span>'+pesoF(t.rev)+'</span></div>').join("")
+    || '<div class="rp-line"><span>No items</span><span>0.00</span></div>';
+  const voidRows = todayVoids.length
+    ? todayVoids.map(v => '<div class="rp-line"><span>'+v.qty+'\u00d7 '+v.itemName+' ('+v.reason+')</span><span>'+pesoF(v.price*v.qty)+'</span></div>').join("")
+    : '<div class="rp-line"><span>No voids</span><span>0.00</span></div>';
+
+  $("reportBox").innerHTML =
+    '<div class="rp-top"></div><div class="rp-in">'
+    + '<div class="rp-brand">SEARED</div><div class="rp-title">End-of-day sales report</div>'
+    + '<div class="rp-meta">'+dateStr+' \u00b7 Mahogany Place, Cebu City<br>Generated by Seared POS</div>'
+    + '<div class="rp-sec"><h4>Sales summary</h4>'
+    +   '<div class="rp-line"><span>Gross subtotal</span><span>'+pesoF(a.sub)+'</span></div>'
+    +   '<div class="rp-line"><span>Discounts</span><span>-'+pesoF(a.discount)+'</span></div>'
+    +   '<div class="rp-line"><span>Service charge</span><span>'+pesoF(a.service)+'</span></div>'
+    +   '<div class="rp-line rp-tot"><span>Total sales</span><span>\u20b1'+pesoF(a.salesTotal)+'</span></div></div>'
+    + '<div class="rp-sec"><h4>Counts</h4>'
+    +   '<div class="rp-line"><span>Orders</span><span>'+a.orders+'</span></div>'
+    +   '<div class="rp-line"><span>Items sold</span><span>'+a.itemsSold+'</span></div>'
+    +   '<div class="rp-line"><span>Average check</span><span>'+pesoF(a.avg)+'</span></div>'
+    +   '<div class="rp-line"><span>VATable</span><span>'+pesoF(a.vatable)+'</span></div>'
+    +   '<div class="rp-line"><span>VAT (12%)</span><span>'+pesoF(a.vat)+'</span></div></div>'
+    + '<div class="rp-sec"><h4>Payment breakdown</h4>'+payRows+'</div>'
+    + '<div class="rp-sec"><h4>Top items</h4>'+topRows+'</div>'
+    + '<div class="rp-sec"><h4>Voids ('+todayVoids.length+')</h4>'+voidRows+'</div>'
+    + '<div class="rp-meta" style="margin-top:1.2rem;text-align:center">Internal report, not a BIR document</div>'
+    + '</div>';
+  $("reportOverlay").classList.add("show");
+});
+function closeReport(){ $("reportOverlay").classList.remove("show"); }
+</script>
+</body>
+</html>

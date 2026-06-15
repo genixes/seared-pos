@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seared POS - Billing</title>
+<style>
+  html{font-size:clamp(16px, 0.5vw + 13px, 20px)}
+  :root{--bg:#1f1813;--surface:#2a2019;--panel:#241b15;--line:#3d2f25;--cream:#f2e9d8;--muted:#a89578;--amber:#e2942f;--green:#6fa85c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto}
+  .pos{background:var(--bg);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:clamp(8px,2vw,20px)}
+  .pos-hd{display:flex;align-items:center;justify-content:space-between;gap:.7rem;padding:.85rem 1.1rem;background:#17110d;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{font-size:1.25rem;letter-spacing:2px;font-weight:700;color:#f4ecdd}
+  .hd-right{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  select{background:var(--surface);color:var(--cream);border:1px solid var(--line);border-radius:9px;padding:.65rem .85rem;font-size:.95rem;font-family:inherit;min-height:2.9rem;cursor:pointer}
+  .badge{font-size:.82rem;padding:.45rem .75rem;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .badge.ok{color:#1f1813;background:var(--green);border-color:var(--green)}
+  .badge.err{color:#fff;background:#a33;border-color:#a33}
+  .body{display:grid;grid-template-columns:1.2fr 1fr}
+  @media(max-width:760px){.body{grid-template-columns:1fr}}
+  .bill{padding:1rem 1.1rem;border-right:1px solid var(--line)}
+  @media(max-width:760px){.bill{border-right:none;border-bottom:1px solid var(--line)}}
+  .sec-l{font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;color:#7a6b52;margin:0 0 .6rem}
+  .bhd{font-size:1.1rem;color:#f4ecdd;font-weight:600}
+  .bhd span{display:block;font-size:.85rem;color:var(--muted);margin-top:.2rem;font-weight:400}
+  .brow{display:flex;align-items:baseline;gap:.7rem;padding:.6rem 0;border-bottom:1px solid #2e241c;font-size:1rem}
+  .brow .bq{color:var(--amber);font-weight:600;min-width:1.8rem}
+  .brow .bn{flex:1;color:var(--cream)}
+  .brow .bp{color:#cdbea2;white-space:nowrap}
+  .bill-empty{font-size:.95rem;color:#7a6b52;padding:1.5rem 0}
+  .pay{background:var(--panel);padding:1rem 1.1rem;display:flex;flex-direction:column;gap:1rem}
+  .opts{display:flex;gap:.5rem;flex-wrap:wrap}
+  .opt{flex:1;min-width:5rem;font-size:.9rem;padding:.65rem .5rem;border-radius:9px;background:var(--surface);border:1px solid var(--line);color:#cdbea2;cursor:pointer;font-family:inherit;text-align:center;min-height:2.8rem}
+  .opt:hover{border-color:var(--amber)}
+  .opt.on{background:var(--amber);border-color:var(--amber);color:#1f1813;font-weight:600}
+  .swrow{display:flex;align-items:center;justify-content:space-between;font-size:.95rem;color:#cdbea2}
+  .sw{position:relative;width:2.6rem;height:1.5rem;background:var(--line);border-radius:1rem;cursor:pointer;transition:background .15s;flex-shrink:0}
+  .sw.on{background:var(--amber)}
+  .sw::after{content:"";position:absolute;top:.15rem;left:.15rem;width:1.2rem;height:1.2rem;border-radius:50%;background:#f4ecdd;transition:transform .15s}
+  .sw.on::after{transform:translateX(1.1rem)}
+  .divx{border-top:1px solid var(--line)}
+  .sumln{display:flex;justify-content:space-between;font-size:.95rem;color:#cdbea2}
+  .sumln.muted{color:#7a6b52;font-size:.85rem}
+  .sumln.disc{color:#9ccb86}
+  .tot{display:flex;justify-content:space-between;align-items:baseline;padding-top:.7rem;border-top:1px solid var(--line)}
+  .tot .tl{font-size:.95rem;color:var(--muted)}
+  .tot .tv{font-size:1.8rem;font-weight:600;color:var(--amber)}
+  .tender{display:flex;gap:.5rem}
+  .tender input{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:.7rem .85rem;color:var(--cream);font-family:inherit;font-size:1rem;min-height:2.9rem}
+  .tender input:focus{outline:none;border-color:var(--amber)}
+  .quick{display:flex;gap:.4rem;flex-wrap:wrap}
+  .quick button{flex:1;min-width:4rem;font-size:.85rem;padding:.5rem;background:var(--surface);border:1px solid var(--line);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;min-height:2.5rem}
+  .quick button:hover{border-color:var(--amber);color:var(--amber)}
+  .change{display:flex;justify-content:space-between;font-size:.95rem;color:#cdbea2}
+  .change b{color:#9ccb86;font-weight:600}
+  .charge{width:100%;background:var(--amber);color:#1f1813;border:none;border-radius:11px;padding:.95rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:inherit;min-height:3.3rem}
+  .charge:hover{background:#eda346}
+  .charge:disabled{opacity:.45;cursor:default}
+  /* Receipt modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:60;padding:1rem;overflow:auto}
+  .overlay.show{display:flex}
+  #receiptBox{background:#faf8f2;color:#1a1714;width:min(94vw,330px);border-radius:6px;padding:1.2rem 1.3rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;line-height:1.55}
+  .r-brand{text-align:center;font-size:1.4rem;font-weight:700;letter-spacing:3px}
+  .r-sub{text-align:center;font-size:.65rem;letter-spacing:1.5px;color:#3a332c;margin-top:.15rem}
+  .r-addr{text-align:center;font-size:.7rem;color:#3a332c;margin-top:.5rem;line-height:1.4}
+  .r-div{border-top:1px dashed #1a1714;margin:.7rem 0}
+  .r-line{display:flex;justify-content:space-between}
+  .r-tot{font-weight:700;font-size:1rem}
+  .r-foot{text-align:center;margin-top:.5rem}
+  .r-foot .ty{font-weight:700;letter-spacing:1px}
+  .r-foot .sm{font-size:.62rem;color:#6a6055;margin-top:.5rem;line-height:1.4}
+  .modal-actions{display:flex;gap:.6rem;width:min(94vw,330px);margin-top:.9rem}
+  .modal-actions button{flex:1;border:none;border-radius:10px;padding:.8rem;font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit;min-height:3rem}
+  .btn-primary{background:var(--amber);color:#1f1813}
+  .btn-ghost{background:var(--surface);border:1px solid var(--line);color:var(--cream)}
+  .rcptwrap{display:flex;flex-direction:column;align-items:center}
+  @media print{
+    body *{visibility:hidden}
+    #receiptBox,#receiptBox *{visibility:visible}
+    #receiptBox{position:absolute;left:0;top:0;width:100%;box-shadow:none}
+    .overlay{background:none;display:block;padding:0}
+    .modal-actions{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pos">
+    <div class="pos-hd">
+      <div class="brand">SEARED</div>
+      <div class="hd-right">
+        <select id="tableSelect"><option value="">Select a table to bill...</option></select>
+        <span class="badge" id="status">...</span>
+      </div>
+    </div>
+    <div class="body">
+      <div class="bill">
+        <div class="bhd" id="bhd">No table selected<span id="bsub">Pick a table with an open order</span></div>
+        <p class="sec-l" style="margin-top:1rem">Items</p>
+        <div id="billItems"><p class="bill-empty">No bill loaded.</p></div>
+      </div>
+      <div class="pay">
+        <div>
+          <p class="sec-l">Discount</p>
+          <div class="opts">
+            <button class="opt on" id="d0" onclick="setDisc(0,this)">None</button>
+            <button class="opt" id="d1" onclick="setDisc(0.20,this)">Senior / PWD 20%</button>
+          </div>
+        </div>
+        <div class="swrow">Service charge (10%)<span class="sw on" id="svc" onclick="toggleSvc()"></span></div>
+        <div class="divx"></div>
+        <div class="sumln"><span>Subtotal</span><span id="s-sub">&#8369;0</span></div>
+        <div class="sumln disc" id="s-discrow" style="display:none"><span>Discount</span><span id="s-disc">&#8369;0</span></div>
+        <div class="sumln" id="s-svcrow"><span>Service charge</span><span id="s-svc">&#8369;0</span></div>
+        <div class="sumln muted"><span>VAT (12%, included)</span><span id="s-vat">&#8369;0</span></div>
+        <div class="tot"><span class="tl">Total due</span><span class="tv" id="s-tot">&#8369;0</span></div>
+        <div>
+          <p class="sec-l">Payment</p>
+          <div class="opts" style="flex-wrap:wrap">
+            <button class="opt on" onclick="setPay('Cash',this)">Cash</button>
+            <button class="opt" onclick="setPay('Card',this)">Card</button>
+            <button class="opt" onclick="setPay('GCash',this)">GCash</button>
+            <button class="opt" onclick="setPay('Maya',this)">Maya</button>
+          </div>
+        </div>
+        <div id="cashbox" style="display:flex;flex-direction:column;gap:.6rem">
+          <div class="tender"><input id="tend" type="number" inputmode="numeric" placeholder="Amount tendered" oninput="calc()"></div>
+          <div class="quick">
+            <button onclick="setTend('exact')">Exact</button>
+            <button onclick="setTend(500)">&#8369;500</button>
+            <button onclick="setTend(1000)">&#8369;1000</button>
+            <button onclick="setTend(5000)">&#8369;5000</button>
+          </div>
+          <div class="change">Change<b id="s-chg">&#8369;0</b></div>
+        </div>
+        <button class="charge" id="chargeBtn" disabled onclick="charge()">Charge</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="receiptOverlay">
+  <div class="rcptwrap">
+    <div id="receiptBox"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="finishSale()">Done</button>
+      <button class="btn-primary" onclick="Hardware.printReceipt()">Print</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="hardware.js"></script>
+<script>
+/* =========================================================================
+   Firebase config is loaded from config.js (same as the previous files)
+   ========================================================================= */
+
+
+const $ = id => document.getElementById(id);
+function setStatus(t,c){ $("status").textContent=t; $("status").className="badge "+(c||""); }
+function peso(n){ return "\u20b1"+Math.round(n).toLocaleString(); }
+
+let db;
+let allTables = [];
+let selectedTable = null;
+let order = null;       // current order { id, items, ... }
+let disc = 0, svc = true, pay = "Cash";
+
+try {
+  if (firebaseConfig.apiKey === "PASTE_HERE") { setStatus("Edit config.js first","err"); }
+  else {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    setStatus("Connected","ok");
+    loadTables();
+  }
+} catch(e){ setStatus("Error","err"); alert(e.message); }
+
+/* Tables that currently have an open order */
+function loadTables(){
+  db.collection("tables").orderBy("label").onSnapshot(snap => {
+    allTables = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const cur = $("tableSelect").value;
+    let opts = '<option value="">Select a table to bill...</option>';
+    allTables.filter(t => t.orderId).forEach(t => {
+      opts += '<option value="'+t.id+'">'+t.label+' ('+t.status+')</option>';
+    });
+    $("tableSelect").innerHTML = opts;
+    if (cur) $("tableSelect").value = cur;
+  });
+}
+$("tableSelect").addEventListener("change", () => selectTable($("tableSelect").value));
+
+async function selectTable(tableId){
+  order = null;
+  if (!tableId){ selectedTable=null; renderBill(); return; }
+  const t = allTables.find(x => x.id===tableId);
+  selectedTable = t;
+  if (!t || !t.orderId){ renderBill(); return; }
+  const odoc = await db.collection("orders").doc(t.orderId).get();
+  if (!odoc.exists){ renderBill(); return; }
+  order = { id: odoc.id, ...odoc.data() };
+  // mark table as billing (shows on the floor view)
+  if (t.status === "occupied"){ db.collection("tables").doc(tableId).update({ status:"billing" }); }
+  // reset payment state
+  disc = 0; svc = true; pay = "Cash";
+  $("d0").classList.add("on"); $("d1").classList.remove("on");
+  $("svc").classList.add("on");
+  document.querySelectorAll(".pay .opts")[1].querySelectorAll(".opt").forEach((b,i)=>b.classList.toggle("on",i===0));
+  $("tend").value = "";
+  renderBill();
+}
+
+function subtotalOf(){ return (order && order.items ? order.items : []).reduce((s,x)=>s+x.price*x.qty,0); }
+
+function renderBill(){
+  if (!order){
+    $("bhd").innerHTML = 'No table selected<span id="bsub">Pick a table with an open order</span>';
+    $("billItems").innerHTML = '<p class="bill-empty">No bill loaded.</p>';
+    $("chargeBtn").disabled = true; calc(); return;
+  }
+  $("bhd").innerHTML = (selectedTable.label) + '<span>Order #'+order.id.slice(0,5).toUpperCase()+' \u00b7 '+(order.serverName||"")+'</span>';
+  const items = order.items || [];
+  $("billItems").innerHTML = items.length
+    ? items.map(x => '<div class="brow"><span class="bq">'+x.qty+'\u00d7</span><span class="bn">'+x.name+'</span><span class="bp">'+peso(x.price*x.qty)+'</span></div>').join("")
+    : '<p class="bill-empty">This order has no items.</p>';
+  $("chargeBtn").disabled = items.length===0;
+  calc();
+}
+
+function setDisc(r,el){ disc=r; $("d0").classList.toggle("on",r===0); $("d1").classList.toggle("on",r!==0); calc(); }
+function toggleSvc(){ svc=!svc; $("svc").classList.toggle("on",svc); calc(); }
+function setPay(p,el){ pay=p; document.querySelectorAll(".pay .opts")[1].querySelectorAll(".opt").forEach(b=>b.classList.remove("on")); el.classList.add("on"); calc(); }
+function setTend(v){ const i=$("tend"); i.value = (v==="exact") ? Math.round(computed().total) : v; calc(); }
+
+function computed(){
+  const sub = subtotalOf();
+  const dAmt = Math.round(sub*disc);
+  const net = sub - dAmt;
+  const sAmt = svc ? Math.round(net*0.10) : 0;
+  const total = net + sAmt;
+  const vat = Math.round(net/1.12*0.12);
+  return { sub, dAmt, net, sAmt, total, vat };
+}
+function calc(){
+  const c = computed();
+  $("s-sub").textContent = peso(c.sub);
+  $("s-discrow").style.display = c.dAmt>0 ? "flex" : "none";
+  $("s-disc").textContent = "-"+peso(c.dAmt);
+  $("s-svcrow").style.display = svc ? "flex" : "none";
+  $("s-svc").textContent = peso(c.sAmt);
+  $("s-vat").textContent = peso(c.vat);
+  $("s-tot").textContent = peso(c.total);
+  $("chargeBtn").textContent = "Charge " + peso(c.total);
+  $("cashbox").style.display = pay==="Cash" ? "flex" : "none";
+  if (pay==="Cash"){
+    const tend = +$("tend").value || 0;
+    $("s-chg").textContent = peso(Math.max(0, tend - c.total));
+  }
+}
+
+async function charge(){
+  if (!order || !order.items.length) return;
+  const c = computed();
+  if (pay==="Cash" && (+$("tend").value||0) < c.total){ alert("Cash tendered is less than the total."); return; }
+  const receiptNo = "R" + Date.now().toString().slice(-6);
+  const tendered = pay==="Cash" ? (+$("tend").value||0) : c.total;
+  const sale = {
+    receiptNo, orderId: order.id, tableId: selectedTable.id,
+    items: order.items, subtotal: c.sub, discountRate: disc, discountAmt: c.dAmt,
+    serviceCharge: c.sAmt, vat: c.vat, vatable: c.net - c.vat, total: c.total,
+    paymentMethod: pay, tendered, change: Math.max(0, tendered - c.total),
+    cashier: "Cashier", closedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    await db.collection("sales").add(sale);
+    await db.collection("orders").doc(order.id).update({ status:"paid" });
+    await db.collection("tables").doc(selectedTable.id).update({ status:"available", orderId:null });
+    if (pay === "Cash") Hardware.openDrawer();
+    showReceipt(sale);
+  } catch(e){ alert("Charge failed: "+e.message); }
+}
+
+function showReceipt(sale){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-PH",{year:"numeric",month:"short",day:"numeric"}) + " " +
+                  now.toLocaleTimeString("en-PH",{hour:"2-digit",minute:"2-digit"});
+  let rows = sale.items.map(x =>
+    '<div class="r-line"><span>'+x.qty+'\u00d7 '+x.name+'</span><span>'+(x.price*x.qty).toLocaleString(undefined,{minimumFractionDigits:2})+'</span></div>'
+  ).join("");
+  const f = n => Number(n).toLocaleString(undefined,{minimumFractionDigits:2});
+  $("receiptBox").innerHTML =
+    '<div class="r-brand">SEARED</div>'
+    + '<div class="r-sub">STEAKS &amp; CHOPS</div>'
+    + '<div class="r-addr">Mahogany Place, Cebu City<br>(032) 259 0742 &middot; 0962 746 3409</div>'
+    + '<div class="r-div"></div>'
+    + '<div class="r-line"><span>Receipt #</span><span>'+sale.receiptNo+'</span></div>'
+    + '<div class="r-line"><span>Table</span><span>'+sale.tableId+'</span></div>'
+    + '<div class="r-line"><span>Date</span><span>'+dateStr+'</span></div>'
+    + '<div class="r-div"></div>'
+    + rows
+    + '<div class="r-div"></div>'
+    + '<div class="r-line"><span>Subtotal</span><span>'+f(sale.subtotal)+'</span></div>'
+    + (sale.discountAmt>0 ? '<div class="r-line"><span>Discount</span><span>-'+f(sale.discountAmt)+'</span></div>' : '')
+    + (sale.serviceCharge>0 ? '<div class="r-line"><span>Service charge</span><span>'+f(sale.serviceCharge)+'</span></div>' : '')
+    + '<div class="r-div"></div>'
+    + '<div class="r-line r-tot"><span>TOTAL</span><span>\u20b1'+f(sale.total)+'</span></div>'
+    + '<div class="r-line"><span>'+sale.paymentMethod+'</span><span>'+f(sale.tendered)+'</span></div>'
+    + (sale.paymentMethod==="Cash" ? '<div class="r-line"><span>Change</span><span>'+f(sale.change)+'</span></div>' : '')
+    + '<div class="r-div"></div>'
+    + '<div class="r-line"><span>VATable sales</span><span>'+f(sale.vatable)+'</span></div>'
+    + '<div class="r-line"><span>VAT (12%)</span><span>'+f(sale.vat)+'</span></div>'
+    + '<div class="r-div"></div>'
+    + '<div class="r-foot"><div class="ty">SALAMAT!</div><div>Thank you for dining with us</div>'
+    + '<div class="sm">Not valid as an official BIR receipt<br>@searedcebu</div></div>';
+  $("receiptOverlay").classList.add("show");
+}
+
+function finishSale(){
+  $("receiptOverlay").classList.remove("show");
+  $("tableSelect").value = "";
+  selectedTable = null; order = null;
+  renderBill();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seared POS - Kitchen Display</title>
+<style>
+  html{font-size:clamp(16px, 0.5vw + 13px, 20px)}
+  :root{--bg:#1f1813;--surface:#2a2019;--line:#3d2f25;--cream:#f2e9d8;--muted:#a89578;--amber:#e2942f;--green:#6fa85c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .app{max-width:1500px;margin:0 auto;padding:clamp(14px,2.5vw,24px) clamp(14px,2.5vw,24px) 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:.7rem;flex-wrap:wrap;padding-bottom:1rem;border-bottom:1px solid var(--line)}
+  .brand{font-size:1.4rem;letter-spacing:3px;font-weight:700;color:#f4ecdd}
+  .brand small{display:block;font-size:.68rem;letter-spacing:2px;color:var(--muted);margin-top:.25rem;font-weight:400}
+  .ctrls{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  .soundbtn{font-size:.88rem;padding:.55rem .95rem;border-radius:9px;background:var(--surface);border:1px solid var(--amber);color:var(--amber);cursor:pointer;font-family:inherit;min-height:2.7rem;font-weight:500}
+  .soundbtn:hover{background:rgba(226,148,47,.12)}
+  .soundbtn.on{background:var(--green);border-color:var(--green);color:#1f1813}
+  .badge{font-size:.85rem;padding:.5rem .85rem;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .badge.ok{color:#1f1813;background:var(--green);border-color:var(--green)}
+  .badge.err{color:#fff;background:#a33;border-color:#a33}
+  .rail{display:flex;flex-wrap:wrap;align-items:flex-start;gap:clamp(12px,1.4vw,18px);margin-top:1.3rem}
+  .ticket{flex:1 1 300px;max-width:360px;background:var(--surface);border:1px solid var(--line);border-top:4px solid #4a3b30;border-radius:13px;display:flex;flex-direction:column;overflow:hidden}
+  .ticket.ready{border-top-color:var(--green)}
+  .ticket.fresh{animation:pop .5s ease}
+  @keyframes pop{0%{box-shadow:0 0 0 0 rgba(226,148,47,.5)}100%{box-shadow:0 0 0 14px rgba(226,148,47,0)}}
+  .tk-hd{padding:.85rem 1rem .7rem;border-bottom:1px solid #2e241c}
+  .tk-r1{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+  .tk-tbl{font-size:1.4rem;font-weight:600;color:#f4ecdd}
+  .tk-time{font-size:1rem;font-weight:600}
+  .tk-r2{display:flex;align-items:center;gap:.5rem;margin-top:.35rem;flex-wrap:wrap}
+  .tk-tag{font-size:.82rem;color:var(--muted)}
+  .tk-ready{display:none;font-size:.72rem;letter-spacing:.5px;background:rgba(111,168,92,.18);color:#9ccb86;padding:.2rem .55rem;border-radius:6px;margin-left:auto}
+  .ticket.ready .tk-ready{display:inline-block}
+  .tk-items{padding:.4rem 1rem;flex:1}
+  .kitem{display:flex;align-items:flex-start;gap:.7rem;padding:.65rem 0;border-bottom:1px solid #2e241c}
+  .kitem:last-child{border-bottom:none}
+  .kq{font-size:1rem;color:var(--amber);font-weight:600;min-width:1.7rem;flex:none;padding-top:.35rem}
+  .kn{flex:1;min-width:0;font-size:1rem;color:var(--cream);line-height:1.35;padding-top:.3rem}
+  .kn small{display:block;font-size:.82rem;color:#8a7a5f;margin-top:.1rem}
+  .istat{flex:none;font-size:.85rem;padding:.5rem .6rem;border-radius:8px;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;width:5rem;min-height:2.5rem;text-align:center;font-weight:500}
+  .pending{background:rgba(168,149,120,.2);color:#c2b196}
+  .cooking{background:rgba(226,148,47,.22);color:#e8a44a}
+  .ready{background:rgba(111,168,92,.22);color:#9ccb86}
+  .istat:active{transform:scale(.96)}
+  .tk-foot{padding:.7rem 1rem .85rem;border-top:1px solid #2e241c}
+  .bump{width:100%;background:none;border:1px solid var(--line);color:#cdbea2;border-radius:9px;padding:.7rem;font-size:.92rem;cursor:pointer;font-family:inherit;min-height:2.8rem}
+  .bump:hover{border-color:var(--amber);color:var(--amber)}
+  .bump:active{transform:scale(.99)}
+  .empty{font-size:1.05rem;color:var(--muted);margin-top:2rem;text-align:center}
+  .toast{position:fixed;top:1rem;left:50%;transform:translateX(-50%) translateY(-20px);opacity:0;background:var(--amber);color:#1f1813;padding:.75rem 1.3rem;border-radius:11px;font-weight:600;font-size:1rem;transition:.25s;pointer-events:none;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">SEARED<small>KITCHEN DISPLAY</small></div>
+    <div class="ctrls">
+      <button class="soundbtn" id="soundBtn">&#128276; Enable sound</button>
+      <span class="badge" id="status">Starting...</span>
+    </div>
+  </header>
+  <div class="rail" id="rail"></div>
+  <p class="empty" id="empty">Waiting for orders...</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script>
+/* =========================================================================
+   Firebase config is loaded from config.js (same as the previous files)
+   ========================================================================= */
+
+
+const statusEl = document.getElementById("status");
+const railEl = document.getElementById("rail");
+const emptyEl = document.getElementById("empty");
+const soundBtn = document.getElementById("soundBtn");
+const toastEl = document.getElementById("toast");
+
+function setStatus(t,c){ statusEl.textContent=t; statusEl.className="badge "+(c||""); }
+
+const KITCHEN = ["pending","cooking","ready"];
+const NEXT = { pending:"cooking", cooking:"ready", ready:"served" };
+
+let db;
+let ordersById = {};
+let activeOrders = [];
+
+/* ---------- SOUND + WAKE LOCK ---------- */
+let audioCtx = null;
+let soundEnabled = false;
+let wakeLock = null;
+let toastTimer = null;
+
+soundBtn.addEventListener("click", async () => {
+  initAudio();
+  soundEnabled = true;
+  soundBtn.textContent = "\uD83D\uDD14 Sound on";
+  soundBtn.classList.add("on");
+  beep();              // test chime so the kitchen hears it works
+  requestWakeLock();   // keep the tablet screen awake
+});
+
+function initAudio(){
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+function beep(){
+  if (!soundEnabled || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  tone(880, now, 0.18);
+  tone(1175, now + 0.16, 0.30);
+}
+function tone(freq, start, dur){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(0.3, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(start); osc.stop(start + dur + 0.03);
+}
+async function requestWakeLock(){
+  try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); }
+  catch(e){ /* not supported / not allowed - ignore */ }
+}
+document.addEventListener("visibilitychange", () => {
+  if (wakeLock !== null && document.visibilityState === "visible") requestWakeLock();
+});
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 3000);
+}
+function onNewOrder(){ beep(); showToast("\uD83D\uDD14 New order received"); }
+
+/* ---------- FIREBASE ---------- */
+try {
+  if (firebaseConfig.apiKey === "PASTE_HERE") {
+    setStatus("Edit config.js first","err");
+  } else {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    setStatus("Connected","ok");
+    listenOrders();
+    setInterval(render, 30000);
+  }
+} catch(e){ setStatus("Error","err"); }
+
+let prevPending = {};   // orderId -> number of "pending" items last seen
+let firstLoad = true;
+let freshIds = {};      // orderId -> true for tickets to briefly highlight
+
+function listenOrders(){
+  db.collection("orders").where("status","in",["open","billing"]).onSnapshot(snap => {
+    ordersById = {}; activeOrders = [];
+    snap.forEach(doc => {
+      const o = { id:doc.id, ...doc.data() };
+      ordersById[o.id] = o;
+      if ((o.items||[]).some(it => KITCHEN.includes(it.status))) activeOrders.push(o);
+    });
+    activeOrders.sort((a,b) => msOf(a.createdAt) - msOf(b.createdAt));
+
+    // detect new work (a new pending item arriving)
+    const curPending = {};
+    let newWork = false;
+    freshIds = {};
+    activeOrders.forEach(o => {
+      const p = (o.items||[]).filter(it => it.status === "pending").length;
+      curPending[o.id] = p;
+      if (p > (prevPending[o.id] || 0)) { newWork = true; freshIds[o.id] = true; }
+    });
+    if (!firstLoad && newWork) onNewOrder();
+    prevPending = curPending;
+    firstLoad = false;
+
+    render();
+  }, err => setStatus("Firestore error","err"));
+}
+
+function msOf(ts){ return ts && ts.toMillis ? ts.toMillis() : Date.now(); }
+function elapsed(ts){
+  const mins = Math.max(0, Math.floor((Date.now() - msOf(ts)) / 60000));
+  let color = "#9ccb86";
+  if (mins >= 15) color = "#ea8c8c";
+  else if (mins >= 8) color = "#e8a44a";
+  return { txt: mins + "m", color };
+}
+
+async function advance(orderId, index){
+  const o = ordersById[orderId]; if (!o) return;
+  const items = o.items.slice();
+  const next = NEXT[items[index].status];
+  if (!next) return;
+  items[index] = { ...items[index], status: next };
+  try { await db.collection("orders").doc(orderId).update({ items }); }
+  catch(e){ alert("Update failed: " + e.message); }
+}
+async function bump(orderId){
+  const o = ordersById[orderId]; if (!o) return;
+  const items = o.items.map(x => KITCHEN.includes(x.status) ? { ...x, status:"served" } : x);
+  try { await db.collection("orders").doc(orderId).update({ items }); }
+  catch(e){ alert("Update failed: " + e.message); }
+}
+
+function render(){
+  if (!activeOrders.length){ railEl.innerHTML=""; emptyEl.style.display="block"; return; }
+  emptyEl.style.display = "none";
+
+  railEl.innerHTML = activeOrders.map(o => {
+    const kitchenItems = (o.items||[])
+      .map((it, idx) => ({ ...it, idx }))
+      .filter(it => KITCHEN.includes(it.status));
+    if (!kitchenItems.length) return "";
+
+    const allReady = kitchenItems.every(it => it.status === "ready");
+    const t = elapsed(o.createdAt);
+    const tag = o.type === "takeout" ? ("Takeout #" + (o.queueNo||"")) : ("Dine-in \u00b7 " + (o.serverName||""));
+    const tableLabel = o.type === "takeout" ? "Takeout" : (o.tableId || "?");
+
+    const rows = kitchenItems.map(it =>
+      '<div class="kitem"><span class="kq">' + it.qty + '\u00d7</span>'
+      + '<span class="kn">' + it.name + (it.notes ? '<small>' + it.notes + '</small>' : '') + '</span>'
+      + '<button class="istat ' + it.status + '" onclick="advance(\'' + o.id + '\',' + it.idx + ')">' + it.status + '</button>'
+      + '</div>'
+    ).join("");
+
+    return '<div class="ticket' + (allReady ? ' ready' : '') + (freshIds[o.id] ? ' fresh' : '') + '">'
+      + '<div class="tk-hd"><div class="tk-r1"><span class="tk-tbl">' + tableLabel + '</span>'
+      + '<span class="tk-time" style="color:' + t.color + '">' + t.txt + '</span></div>'
+      + '<div class="tk-r2"><span class="tk-tag">' + tag + '</span><span class="tk-ready">READY</span></div></div>'
+      + '<div class="tk-items">' + rows + '</div>'
+      + '<div class="tk-foot"><button class="bump" onclick="bump(\'' + o.id + '\')">Bump ticket</button></div>'
+      + '</div>';
+  }).join("");
+}
+</script>
+</body>
+</html>

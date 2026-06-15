@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seared POS - Order Entry</title>
+<style>
+  html{font-size:clamp(16px, 0.5vw + 13px, 20px)}
+  :root{--bg:#1f1813;--surface:#2a2019;--panel:#241b15;--line:#3d2f25;--cream:#f2e9d8;--muted:#a89578;--amber:#e2942f;--green:#6fa85c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1360px;margin:0 auto;padding:0}
+  .pos{background:var(--bg);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:clamp(8px,2vw,20px)}
+  .pos-hd{display:flex;align-items:center;justify-content:space-between;gap:.7rem;padding:.85rem 1.1rem;background:#17110d;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{font-size:1.25rem;letter-spacing:2px;font-weight:700;color:#f4ecdd}
+  .hd-right{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  select{background:var(--surface);color:var(--cream);border:1px solid var(--line);border-radius:9px;padding:.65rem .85rem;font-size:.95rem;font-family:inherit;min-height:2.9rem;cursor:pointer}
+  .badge{font-size:.82rem;padding:.45rem .75rem;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .badge.ok{color:#1f1813;background:var(--green);border-color:var(--green)}
+  .badge.err{color:#fff;background:#a33;border-color:#a33}
+  .body{display:grid;grid-template-columns:1.6fr 1fr}
+  @media(max-width:760px){.body{grid-template-columns:1fr}}
+  .menu{padding:1rem 1rem 1.3rem;border-right:1px solid var(--line)}
+  @media(max-width:760px){.menu{border-right:none;border-bottom:1px solid var(--line)}}
+  .tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+  .tab{font-size:.92rem;padding:.6rem 1rem;border-radius:9px;background:var(--surface);border:1px solid var(--line);color:var(--muted);cursor:pointer;font-family:inherit;min-height:2.7rem;display:inline-flex;align-items:center}
+  .tab:hover{border-color:var(--amber)}
+  .tab.on{background:var(--amber);border-color:var(--amber);color:#1f1813;font-weight:600}
+  .items{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.7rem}
+  .item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:.85rem .9rem;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:.5rem;min-height:4.6rem;justify-content:space-between;color:var(--cream);font-family:inherit;font-size:1rem;line-height:1.3;transition:border-color .12s,transform .1s}
+  .item:hover{border-color:var(--amber);transform:translateY(-1px)}
+  .item:active{transform:scale(.98)}
+  .item .ip{color:var(--amber);font-weight:600;font-size:1rem}
+  .order{background:var(--panel);display:flex;flex-direction:column;min-height:26rem}
+  .ord-hd{padding:1rem 1.15rem;border-bottom:1px solid var(--line)}
+  .ord-hd b{font-size:1.15rem;color:#f4ecdd;font-weight:600}
+  .ord-hd span{display:block;font-size:.88rem;color:var(--muted);margin-top:.2rem}
+  .ord-list{padding:.5rem 1.15rem;flex:1}
+  .sec-l{font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;color:#7a6b52;margin:1rem 0 .3rem}
+  .orow{display:flex;gap:.7rem;align-items:flex-start;padding:.7rem 0;border-bottom:1px solid #2e241c}
+  .q{font-size:1rem;color:var(--amber);font-weight:600;min-width:1.9rem;flex:none}
+  .oinfo{flex:1;min-width:0}
+  .oname{font-size:1rem;color:var(--cream)}
+  .ost{display:inline-block;font-size:.72rem;padding:.18rem .55rem;border-radius:6px;margin-top:.25rem;text-transform:capitalize}
+  .st-new{background:rgba(168,149,120,.18);color:#c2b196}
+  .st-pending{background:rgba(168,149,120,.18);color:#c2b196}
+  .st-cooking{background:rgba(226,148,47,.16);color:#e8a44a}
+  .st-ready{background:rgba(111,168,92,.16);color:#9ccb86}
+  .st-served{background:rgba(125,176,196,.16);color:#a9c9d6}
+  .oprice{font-size:1rem;color:#cdbea2;white-space:nowrap}
+  .rm{background:none;border:none;color:#7a6b52;cursor:pointer;font-size:1.2rem;padding:.1rem .4rem;min-width:2rem;line-height:1;flex:none}
+  .rm:hover{color:#d97746}
+  .voidbtn{background:none;border:1px solid #5a3a30;color:#c98c78;border-radius:7px;padding:.35rem .55rem;font-size:.76rem;cursor:pointer;font-family:inherit;min-height:2.1rem;white-space:nowrap;flex:none}
+  .voidbtn:hover{border-color:#c0492f;color:#e8a07e}
+  .ord-empty{font-size:.95rem;color:#7a6b52;padding:1.1rem 0}
+  .ord-foot{padding:1rem 1.15rem;border-top:1px solid var(--line);background:var(--bg)}
+  .foot-actions{margin-bottom:.85rem;display:none}
+  .ghost{background:none;border:1px solid var(--line);color:#cdbea2;border-radius:9px;padding:.6rem .95rem;font-size:.88rem;cursor:pointer;font-family:inherit;min-height:2.6rem}
+  .ghost:hover{border-color:var(--amber);color:var(--amber)}
+  .subt{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.9rem}
+  .subt .sl{font-size:.95rem;color:var(--muted)}
+  .subt .sv{font-size:1.7rem;font-weight:600;color:#f4ecdd}
+  .send{width:100%;background:var(--amber);color:#1f1813;border:none;border-radius:11px;padding:.95rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:inherit;min-height:3.2rem}
+  .send:hover{background:#eda346}
+  .send:active{transform:scale(.99)}
+  .send:disabled{opacity:.45;cursor:default}
+  /* Modals */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:60;padding:1rem}
+  .overlay.show{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:1.3rem 1.4rem;width:min(92vw,420px)}
+  .modal h3{margin:0 0 .35rem;font-size:1.2rem;color:#f4ecdd}
+  .modal .m-sub{margin:0 0 .9rem;font-size:.9rem;color:var(--muted);line-height:1.45}
+  .modal label{display:block;font-size:.74rem;color:var(--muted);margin:.8rem 0 .3rem;text-transform:uppercase;letter-spacing:1px}
+  .modal select,.modal input{width:100%;background:var(--bg);color:var(--cream);border:1px solid var(--line);border-radius:9px;padding:.75rem .85rem;font-size:1rem;font-family:inherit;min-height:2.9rem}
+  .modal select:focus,.modal input:focus{outline:none;border-color:var(--amber)}
+  .modal-actions{display:flex;gap:.6rem;margin-top:1.3rem}
+  .btn{flex:1;border:none;border-radius:10px;padding:.8rem;font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit;min-height:3rem}
+  .btn-primary{background:var(--amber);color:#1f1813}
+  .btn-danger{background:#c0492f;color:#fff}
+  .btn-ghost{background:none;border:1px solid var(--line);color:var(--cream)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pos">
+    <div class="pos-hd">
+      <div class="brand">SEARED</div>
+      <div class="hd-right">
+        <select id="tableSelect"><option value="">Select a table...</option></select>
+        <span class="badge" id="status">...</span>
+      </div>
+    </div>
+    <div class="body">
+      <div class="menu">
+        <div class="tabs" id="tabs"></div>
+        <div class="items" id="items"><p class="ord-empty">Loading menu...</p></div>
+      </div>
+      <div class="order">
+        <div class="ord-hd"><b id="ord-title">No table selected</b><span id="ord-sub">Select a table above to start</span></div>
+        <div class="ord-list" id="ord-list"><p class="ord-empty">No order yet.</p></div>
+        <div class="ord-foot">
+          <div class="foot-actions" id="footActions">
+            <button class="ghost" id="moveBtn">Move to another table</button>
+          </div>
+          <div class="subt"><span class="sl">Subtotal</span><span class="sv" id="subtotal">&#8369;0</span></div>
+          <button class="send" id="sendBtn" disabled>Send to kitchen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Move table modal -->
+<div class="overlay" id="moveOverlay">
+  <div class="modal">
+    <h3>Move order to another table</h3>
+    <p class="m-sub">Use this if the order was placed on the wrong table. The kitchen ticket stays the same.</p>
+    <label>Move to</label>
+    <select id="moveSelect"></select>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('moveOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmMove()">Move order</button>
+    </div>
+  </div>
+</div>
+
+<!-- Void modal (manager PIN) -->
+<div class="overlay" id="voidOverlay">
+  <div class="modal">
+    <h3>Void item</h3>
+    <p class="m-sub" id="voidItemLabel"></p>
+    <label>Reason</label>
+    <select id="voidReason">
+      <option>Wrong item</option>
+      <option>Customer cancelled</option>
+      <option>Kitchen error</option>
+      <option>Out of stock</option>
+      <option>Other</option>
+    </select>
+    <label>Manager PIN</label>
+    <input id="voidPin" type="password" inputmode="numeric" placeholder="Enter manager PIN" />
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('voidOverlay')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmVoid()">Void item</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script>
+/* =========================================================================
+   Firebase config is loaded from config.js (same as the previous files)
+   ========================================================================= */
+
+
+/* Interim manager PIN for voids. In Phase 7 this is replaced by real
+   manager login (role-based). Change "1234" to your own code. */
+const MANAGER_PIN = "1234";
+
+const statusEl = document.getElementById("status");
+const tableSelect = document.getElementById("tableSelect");
+const tabsEl = document.getElementById("tabs");
+const itemsEl = document.getElementById("items");
+const ordTitle = document.getElementById("ord-title");
+const ordSub = document.getElementById("ord-sub");
+const ordList = document.getElementById("ord-list");
+const subtotalEl = document.getElementById("subtotal");
+const sendBtn = document.getElementById("sendBtn");
+const footActions = document.getElementById("footActions");
+const moveBtn = document.getElementById("moveBtn");
+const moveSelect = document.getElementById("moveSelect");
+const voidItemLabel = document.getElementById("voidItemLabel");
+const voidReason = document.getElementById("voidReason");
+const voidPin = document.getElementById("voidPin");
+
+function setStatus(t,c){ statusEl.textContent=t; statusEl.className="badge "+(c||""); }
+function peso(n){ return "\u20b1"+Number(n).toLocaleString(); }
+
+let db;
+let menuById = {};
+let menuByCat = {};
+let activeCat = null;
+let allTables = [];
+let selectedTable = null;
+let currentOrderId = null;
+let currentOrder = null;
+let unsubOrder = null;
+let creating = false;
+let pendingVoidIndex = null;
+
+try {
+  if (firebaseConfig.apiKey === "PASTE_HERE") {
+    setStatus("Edit config.js first","err");
+  } else {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    setStatus("Connected","ok");
+    loadMenu();
+    loadTables();
+  }
+} catch(e){ setStatus("Error","err"); alert(e.message); }
+
+/* ---------- MENU ---------- */
+function loadMenu(){
+  db.collection("menu").orderBy("category").onSnapshot(snap => {
+    menuById = {}; menuByCat = {};
+    snap.forEach(doc => {
+      const it = { id:doc.id, ...doc.data() };
+      menuById[it.id] = it;
+      (menuByCat[it.category] = menuByCat[it.category] || []).push(it);
+    });
+    if (!activeCat) activeCat = Object.keys(menuByCat)[0];
+    renderTabs(); renderItems();
+  });
+}
+function renderTabs(){
+  tabsEl.innerHTML = Object.keys(menuByCat).map(cat =>
+    '<button class="tab '+(cat===activeCat?'on':'')+'" onclick="setCat(\''+cat+'\')">'+cat+'</button>'
+  ).join("");
+}
+function renderItems(){
+  const list = menuByCat[activeCat] || [];
+  itemsEl.innerHTML = list.map(it =>
+    '<button class="item" onclick="addItem(\''+it.id+'\')"><span>'+it.name+'</span><span class="ip">'+peso(it.price)+'</span></button>'
+  ).join("");
+}
+function setCat(c){ activeCat=c; renderTabs(); renderItems(); }
+
+/* ---------- TABLES ---------- */
+function loadTables(){
+  db.collection("tables").orderBy("label").onSnapshot(snap => {
+    allTables = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const cur = tableSelect.value;
+    let opts = '<option value="">Select a table...</option>';
+    allTables.forEach(t => {
+      opts += '<option value="'+t.id+'">'+t.label+' ('+t.seats+' seats) - '+t.status+'</option>';
+    });
+    tableSelect.innerHTML = opts;
+    if (cur) tableSelect.value = cur;
+  });
+}
+tableSelect.addEventListener("change", () => selectTable(tableSelect.value));
+
+async function selectTable(tableId){
+  if (unsubOrder){ unsubOrder(); unsubOrder=null; }
+  currentOrderId=null; currentOrder=null;
+  if (!tableId){ selectedTable=null; renderOrder(); return; }
+  const tdoc = await db.collection("tables").doc(tableId).get();
+  selectedTable = { id:tableId, ...tdoc.data() };
+  if (selectedTable.orderId){ subscribeOrder(selectedTable.orderId); }
+  else { renderOrder(); }
+}
+function subscribeOrder(orderId){
+  currentOrderId = orderId;
+  unsubOrder = db.collection("orders").doc(orderId).onSnapshot(doc => {
+    currentOrder = doc.exists ? doc.data() : null;
+    renderOrder();
+  });
+}
+async function ensureOrder(){
+  if (currentOrderId || creating) return;
+  creating = true;
+  const ref = await db.collection("orders").add({
+    type:"dine-in", tableId:selectedTable.id, status:"open", serverName:"Waiter",
+    items:[], total:0, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  await db.collection("tables").doc(selectedTable.id).update({ status:"occupied", orderId: ref.id });
+  selectedTable.orderId = ref.id;
+  subscribeOrder(ref.id);
+  creating = false;
+}
+
+/* ---------- ADD / REMOVE / SEND ---------- */
+async function addItem(menuId){
+  if (!selectedTable){ alert("Select a table first."); return; }
+  await ensureOrder();
+  const m = menuById[menuId];
+  const items = (currentOrder && currentOrder.items ? currentOrder.items.slice() : []);
+  const existing = items.find(x => x.menuId===menuId && x.status==="new");
+  if (existing) existing.qty += 1;
+  else items.push({ menuId, name:m.name, price:m.price, qty:1, notes:"", status:"new" });
+  await saveItems(items);
+}
+async function removeItem(index){
+  const items = currentOrder.items.slice();
+  items.splice(index,1);
+  await saveItems(items);
+}
+function calcTotal(items){ return items.reduce((s,x)=>s + x.price*x.qty, 0); }
+async function saveItems(items){
+  await db.collection("orders").doc(currentOrderId).update({ items, total: calcTotal(items) });
+}
+sendBtn.addEventListener("click", async () => {
+  if (!currentOrder || !currentOrder.items.length) return;
+  const items = currentOrder.items.map(x => x.status==="new" ? {...x, status:"pending"} : x);
+  await saveItems(items);
+});
+
+/* ---------- MOVE TABLE (waiter-level, no PIN) ---------- */
+moveBtn.addEventListener("click", () => {
+  if (!currentOrderId){ return; }
+  const avail = allTables.filter(t => t.status==="available" && t.id!==selectedTable.id);
+  if (!avail.length){ alert("No available table to move to."); return; }
+  moveSelect.innerHTML = avail.map(t => '<option value="'+t.id+'">'+t.label+' ('+t.seats+' seats)</option>').join("");
+  openModal("moveOverlay");
+});
+async function confirmMove(){
+  const newId = moveSelect.value;
+  if (!newId) return;
+  const oldId = selectedTable.id;
+  const orderId = currentOrderId;
+  try {
+    await db.collection("orders").doc(orderId).update({ tableId: newId });
+    await db.collection("tables").doc(newId).update({ status:"occupied", orderId });
+    await db.collection("tables").doc(oldId).update({ status:"available", orderId:null });
+    closeModal("moveOverlay");
+    tableSelect.value = newId;
+    selectTable(newId);
+  } catch(e){ alert("Move failed: "+e.message); }
+}
+
+/* ---------- VOID (manager PIN) ---------- */
+function askVoid(index){
+  pendingVoidIndex = index;
+  const it = currentOrder.items[index];
+  voidItemLabel.textContent = "Voiding: " + it.qty + "\u00d7 " + it.name + " (sent to kitchen). Manager approval required.";
+  voidReason.selectedIndex = 0;
+  voidPin.value = "";
+  openModal("voidOverlay");
+}
+async function confirmVoid(){
+  if (voidPin.value !== MANAGER_PIN){ alert("Incorrect manager PIN."); return; }
+  const index = pendingVoidIndex;
+  const it = currentOrder.items[index];
+  try {
+    await db.collection("voids").add({
+      orderId: currentOrderId, tableId: selectedTable.id,
+      itemName: it.name, qty: it.qty, price: it.price,
+      reason: voidReason.value, approvedBy: "manager-pin",
+      voidedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    const items = currentOrder.items.slice();
+    items.splice(index,1);
+    await saveItems(items);
+    closeModal("voidOverlay");
+  } catch(e){ alert("Void failed: "+e.message); }
+}
+
+/* ---------- MODAL HELPERS ---------- */
+function openModal(id){ document.getElementById(id).classList.add("show"); }
+function closeModal(id){ document.getElementById(id).classList.remove("show"); }
+
+/* ---------- RENDER ORDER PANEL ---------- */
+function renderOrder(){
+  footActions.style.display = (selectedTable && currentOrderId) ? "block" : "none";
+  if (!selectedTable){
+    ordTitle.textContent="No table selected";
+    ordSub.textContent="Select a table above to start";
+    ordList.innerHTML='<p class="ord-empty">No order yet.</p>';
+    subtotalEl.textContent=peso(0); sendBtn.disabled=true; return;
+  }
+  ordTitle.textContent = selectedTable.label + " \u00b7 " + selectedTable.seats + " seats";
+  const items = (currentOrder && currentOrder.items) ? currentOrder.items : [];
+  ordSub.textContent = items.length ? "Order open" : "Tap menu items to start";
+
+  if (!items.length){
+    ordList.innerHTML='<p class="ord-empty">No items yet. Tap the menu on the left.</p>';
+    subtotalEl.textContent=peso(0); sendBtn.disabled=true; return;
+  }
+
+  const sent = items.filter(x => x.status!=="new");
+  const fresh = items.filter(x => x.status==="new");
+  let html = "";
+  if (sent.length){
+    html += '<p class="sec-l">Sent to kitchen</p>';
+    sent.forEach(x => { html += rowHtml(x, items.indexOf(x), "sent"); });
+  }
+  html += '<p class="sec-l">New - not yet sent</p>';
+  if (fresh.length){ fresh.forEach(x => { html += rowHtml(x, items.indexOf(x), "new"); }); }
+  else { html += '<p class="ord-empty">Nothing new.</p>'; }
+  ordList.innerHTML = html;
+
+  subtotalEl.textContent = peso(calcTotal(items));
+  const newCount = fresh.reduce((s,x)=>s+x.qty,0);
+  sendBtn.disabled = newCount===0;
+  sendBtn.textContent = newCount ? ("Send to kitchen ("+newCount+" new)") : "Send to kitchen";
+}
+function rowHtml(x, idx, type){
+  const action = (type==="new")
+    ? '<button class="rm" onclick="removeItem('+idx+')">\u2715</button>'
+    : '<button class="voidbtn" onclick="askVoid('+idx+')">Void</button>';
+  return '<div class="orow"><span class="q">'+x.qty+'\u00d7</span>'
+       + '<div class="oinfo"><div class="oname">'+x.name+'</div>'
+       + '<span class="ost st-'+x.status+'">'+x.status+'</span></div>'
+       + '<span class="oprice">'+peso(x.price*x.qty)+'</span>'
+       + action + '</div>';
+}
+</script>
+</body>
+</html>
